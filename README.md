@@ -33,7 +33,7 @@ CONFIG = [
 ]
 ```
 
-The `account_patterns` parameter is a list of (regex, account) pairs. For each line in your Chase CSV, `CheckingImporter` will attempt to create a matching posting on the transaction by matching the payee or narration to the regexes. The regexes are in priority order, with earlier patterns taking priority over later patterns.
+The `account_patterns` parameter is a list of (regex, account) pairs. For each line in your Chase CSV, `CheckingImporter` will attempt to create a matching posting on the transaction by matching the payee, narration, or the concatenated pair to the regexes. The regexes are in priority order, with earlier patterns taking priority over later patterns.
 
 Once this configuration is in place, you can use `bean-extract` to convert a Chase CSV export of transactions to beancount format:
 

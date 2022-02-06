@@ -72,8 +72,7 @@ class CheckingImporter(importer.ImporterProtocol):
         else:
             raise ValueError(f'failed to parse {row[_COLUMN_PAYEE]}')
         if transaction_description:
-            transaction_description = titlecase.titlecase(
-                transaction_description)
+            narration = titlecase.titlecase(transaction_description)
         if row[_COLUMN_AMOUNT]:
             transaction_amount = self._parse_amount(row[_COLUMN_AMOUNT])
         else:
@@ -92,7 +91,8 @@ class CheckingImporter(importer.ImporterProtocol):
                          meta=None)
         ]
         for pattern, account_name in self._account_patterns:
-            if pattern.search(payee) or pattern.search(transaction_description):
+            if pattern.search(payee) or pattern.search(
+                    narration) or pattern.search(payee + narration):
                 postings.append(
                     data.Posting(account=account_name,
                                  units=-transaction_amount,
@@ -109,7 +109,7 @@ class CheckingImporter(importer.ImporterProtocol):
             date=transaction_date,
             flag=flags.FLAG_OKAY,
             payee=payee,
-            narration=transaction_description,
+            narration=narration,
             tags=data.EMPTY_SET,
             links=data.EMPTY_SET,
             postings=postings,
