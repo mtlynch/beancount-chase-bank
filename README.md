@@ -39,3 +39,7 @@ Once this configuration is in place, you can use `bean-extract` to convert a Mer
 ```bash
 bean-extract config.py mercury-transactions.csv
 ```
+
+## Resources
+
+See [awesome-beancount](https://awesome-beancount.com/) for other publicly available Beancount importers.
