@@ -1,1 +1,1 @@
-from .checking import MercuryCheckingImporter  # NOQA
+from .checking import CheckingImporter  # NOQA

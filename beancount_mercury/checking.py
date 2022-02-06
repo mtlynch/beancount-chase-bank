@@ -20,7 +20,7 @@ _COLUMN_STATUS = 'Status'
 _FILENAME_PATTERN = re.compile(r'transactions-.+\.CSV', re.IGNORECASE)
 
 
-class MercuryCheckingImporter(importer.ImporterProtocol):
+class CheckingImporter(importer.ImporterProtocol):
 
     def __init__(self, account, currency='USD', account_patterns=None):
         self._account = account

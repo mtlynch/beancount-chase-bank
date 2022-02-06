@@ -4,7 +4,7 @@ import textwrap
 import pytest  # NOQA, pylint: disable=unused-import
 from beancount.ingest import extract
 
-from .checking import MercuryCheckingImporter
+from . import CheckingImporter
 
 
 def _unindent(indented):
@@ -26,8 +26,7 @@ def test_identifies_mercury_file(tmp_path):
             """))
 
     with mercury_file.open() as f:
-        assert MercuryCheckingImporter(
-            account='Assets:Checking:Mercury').identify(f)
+        assert CheckingImporter(account='Assets:Checking:Mercury').identify(f)
 
 
 def test_extracts_single_transaction_without_matching_account(tmp_path):
@@ -39,7 +38,7 @@ def test_extracts_single_transaction_without_matching_account(tmp_path):
             """))
 
     with mercury_file.open() as f:
-        directives = MercuryCheckingImporter(
+        directives = CheckingImporter(
             account='Assets:Checking:Mercury').extract(f)
 
     assert _unindent("""
@@ -57,7 +56,7 @@ def test_extracts_single_transaction_with_matching_account(tmp_path):
             """))
 
     with mercury_file.open() as f:
-        directives = MercuryCheckingImporter(
+        directives = CheckingImporter(
             account='Assets:Checking:Mercury',
             account_patterns=[
                 ('^Bowlers Paradise$',
@@ -81,7 +80,7 @@ def test_matches_transactions_by_priority(tmp_path):
             """))
 
     with mercury_file.open() as f:
-        directives = MercuryCheckingImporter(
+        directives = CheckingImporter(
             account='Assets:Checking:Mercury',
             account_patterns=[
                 ('^Bowlers Paradise$',
