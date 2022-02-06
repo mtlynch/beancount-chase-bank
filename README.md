@@ -1,7 +1,7 @@
 # beancount-chase-bank
 
 [![PyPI](https://img.shields.io/pypi/v/beancount-chase-bank)](https://pypi.org/project/beancount-chase-bank/)
-[![CircleCI](https://circleci.com/gh/mtlynch/beancount-chase.svg?style=svg)](https://circleci.com/gh/mtlynch/beancount-chase)
+[![CircleCI](https://circleci.com/gh/mtlynch/beancount-chase-bank.svg?style=svg)](https://circleci.com/gh/mtlynch/beancount-chase-bank)
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](LICENSE)
 
 beancount-chase-bank provides an Importer for converting CSV exports Chase bank transactions into [Beancount](https://github.com/beancount/beancount) v2 format.
