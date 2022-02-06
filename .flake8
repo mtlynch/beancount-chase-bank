@@ -1,0 +1,3 @@
+[flake8]
+# We're checking line length with other tools.
+ignore = E501

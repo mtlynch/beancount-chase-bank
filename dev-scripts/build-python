@@ -10,7 +10,7 @@ set -x
 set -u
 
 # Location of app source files.
-readonly SOURCE_DIR=app
+readonly SOURCE_DIR=beancount_mercury
 
 # Location of virtualenv.
 readonly VIRTUALENV_DIR=venv
@@ -23,11 +23,7 @@ find . \
   -delete
 
 # Run unit tests and calculate code coverage.
-coverage run \
-  --source "${SOURCE_DIR}" \
-  --omit "*_test.py" \
-  -m unittest discover --pattern "*_test.py"
-coverage report
+pytest --cov="${SOURCE_DIR}" "${SOURCE_DIR}"
 
 # Check that source has correct formatting.
 yapf --diff --recursive ./
@@ -41,7 +37,7 @@ isort \
   --skip-glob="${VIRTUALENV_DIR}/*"
 
 # Run static analysis for Python bugs/cruft.
-pyflakes "${SOURCE_DIR}/"
+flake8 "${SOURCE_DIR}/"
 
 # Check for other style violations.
 PYTHONPATH="${SOURCE_DIR}" pylint "${SOURCE_DIR}"
