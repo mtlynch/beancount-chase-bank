@@ -72,7 +72,7 @@ def test_matches_account_when_pattern_splits_across_payee_and_narration(
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,11/06/2021,"ORIG CO NAME:CHASE CREDIT CRD       ORIG ID:1234567890 DESC DATE:211203 CO ENTRY DESCR:AUTOPAYBUSSEC:PPD    TRACE#:987654321987654 EED:112233   IND ID:                             IND NAME:LYNCH CUSTOMER T TRN: 1122334455TC",-357.51,ACH_DEBIT,2988.62,,
+            DEBIT,11/06/2021,"ORIG CO NAME:CHASE CREDIT CRD       ORIG ID:1234567890 DESC DATE:211203 CO ENTRY DESCR:AUTOPAYBUSSEC:PPD    TRACE#:987654321987654 EED:112233   IND ID:                             IND NAME:MICHAEL CUSTOMER T TRN: 1122334455TC",-357.51,ACH_DEBIT,2988.62,,
             """))
 
     with chase_file.open() as f:
