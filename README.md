@@ -1,20 +1,20 @@
-# beancount-chase
+# beancount-chase-bank
 
-[![PyPI](https://img.shields.io/pypi/v/beancount-chase)](https://pypi.org/project/beancount-chase/)
+[![PyPI](https://img.shields.io/pypi/v/beancount-chase-bank)](https://pypi.org/project/beancount-chase-bank/)
 [![CircleCI](https://circleci.com/gh/mtlynch/beancount-chase.svg?style=svg)](https://circleci.com/gh/mtlynch/beancount-chase)
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](LICENSE)
 
-beancount-chase provides an Importer for converting CSV exports Chase checking transactions into [Beancount](https://github.com/beancount/beancount) v2 format.
+beancount-chase-bank provides an Importer for converting CSV exports Chase bank transactions into [Beancount](https://github.com/beancount/beancount) v2 format.
 
 ## Installation
 
 ```bash
-pip install beancount-chase
+pip install beancount-chase-bank
 ```
 
 ## Usage
 
-Add the Chase importer to your account as follows:
+Add the Chase Checking importer to your account as follows:
 
 ```python
 import beancount_chase
@@ -38,7 +38,7 @@ The `account_patterns` parameter is a list of (regex, account) pairs. For each l
 Once this configuration is in place, you can use `bean-extract` to convert a Chase CSV export of transactions to beancount format:
 
 ```bash
-bean-extract config.py chase-transactions.csv
+bean-extract config.py Chase1234_Activity_20220219.CSV
 ```
 
 ## Resources
