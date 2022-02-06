@@ -69,3 +69,32 @@ def test_extracts_single_transaction_with_matching_account(tmp_path):
           Assets:Checking:Mercury                            -550.00 USD
           Expenses:Equipment:Bowling-Balls:Bowlers-Paradise   550.00 USD
         """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_matches_transactions_by_priority(tmp_path):
+    mercury_file = tmp_path / 'transactions-dummy-to-feb052022.csv'
+    mercury_file.write_text(
+        _unindent("""
+            Date,Description,Amount,Status,Bank Description,Reference,Note
+            02-04-2022,Bowlers Paradise,-550.00,Sent,Send Money transaction initiated on Mercury,"From Dummy, LLC for bowling balls",
+            02-05-2022,Paradise Golf,-150.75,Sent,PARADISE GOLF,,
+            """))
+
+    with mercury_file.open() as f:
+        directives = MercuryCheckingImporter(
+            account='Assets:Checking:Mercury',
+            account_patterns=[
+                ('^Bowlers Paradise$',
+                 'Expenses:Equipment:Bowling-Balls:Bowlers-Paradise'),
+                ('Paradise', 'Expenses:Training:Paradise-Golf')
+            ]).extract(f)
+
+    assert _unindent("""
+        2022-02-04 * "Bowlers Paradise" "Send Money transaction initiated on Mercury - From Dummy, LLC for bowling balls"
+          Assets:Checking:Mercury                            -550.00 USD
+          Expenses:Equipment:Bowling-Balls:Bowlers-Paradise   550.00 USD
+
+        2022-02-05 * "Paradise Golf" "PARADISE GOLF"
+          Assets:Checking:Mercury          -150.75 USD
+          Expenses:Training:Paradise-Golf   150.75 USD
+        """.rstrip()) == _stringify_directives(directives).strip()

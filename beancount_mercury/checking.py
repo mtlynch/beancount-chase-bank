@@ -100,6 +100,7 @@ class MercuryCheckingImporter(importer.ImporterProtocol):
                                  price=None,
                                  flag=None,
                                  meta=None))
+                break
 
         # For some reason, pylint thinks data.Transactions is not callable.
         # pylint: disable=not-callable
