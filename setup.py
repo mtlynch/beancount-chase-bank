@@ -5,7 +5,7 @@ import os.path
 import setuptools
 
 setuptools.setup(
-    name='zestful-parse-ingredient',
+    name='beancount-mercury',
     long_description=open(
         os.path.join(os.path.abspath(os.path.dirname(__file__)),
                      'README.md')).read(),
