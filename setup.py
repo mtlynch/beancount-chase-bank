@@ -5,18 +5,18 @@ import os.path
 import setuptools
 
 setuptools.setup(
-    name='beancount-mercury',
+    name='beancount-chase',
     long_description=open(
         os.path.join(os.path.abspath(os.path.dirname(__file__)),
                      'README.md')).read(),
     long_description_content_type="text/markdown",
     version='0.1.2',
-    description='Import Mercury banking transactions into beancount format',
+    description='Import Chase banking transactions into beancount format',
     author='Michael Lynch',
     license="MIT",
-    keywords="mercury beancount bookkeeping finance",
-    url='https://github.com/mtlynch/beancount-mercury.git',
-    packages=['beancount_mercury'],
+    keywords="chase beancount bookkeeping finance",
+    url='https://github.com/mtlynch/beancount-chase.git',
+    packages=['beancount_chase'],
     install_requires=[],
     python_requires='>=3.7',
 )

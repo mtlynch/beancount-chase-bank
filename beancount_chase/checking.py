@@ -10,20 +10,23 @@ from beancount.core import flags
 from beancount.core import number as beancount_number
 from beancount.ingest import importer
 
-_COLUMN_DATE = 'Date'
+_COLUMN_DATE = 'Posting Date'
 _COLUMN_PAYEE = 'Description'
-_COLUMN_DESCRIPTION = 'Bank Description'
-_COLUMN_REFERENCE = 'Reference'
 _COLUMN_AMOUNT = 'Amount'
-_COLUMN_STATUS = 'Status'
 
-_FILENAME_PATTERN = re.compile(r'transactions-.+\.CSV', re.IGNORECASE)
+_FILENAME_PATTERN = re.compile(r'Chase(\d{4})_Activity_[\d_]{8}.*\.CSV',
+                               re.IGNORECASE)
 
 
 class CheckingImporter(importer.ImporterProtocol):
 
-    def __init__(self, account, currency='USD', account_patterns=None):
+    def __init__(self,
+                 account,
+                 lastfour=None,
+                 currency='USD',
+                 account_patterns=None):
         self._account = account
+        self._last_four_account_digits = lastfour
         self._currency = currency
         self._account_patterns = []
         if account_patterns:
@@ -42,7 +45,10 @@ class CheckingImporter(importer.ImporterProtocol):
         return self._account
 
     def identify(self, file):
-        return _FILENAME_PATTERN.match(os.path.basename(file.name))
+        match = _FILENAME_PATTERN.match(os.path.basename(file.name))
+        if not match:
+            return False
+        return self._last_four_account_digits == match.group(1)
 
     def extract(self, f):
         transactions = []
@@ -58,22 +64,16 @@ class CheckingImporter(importer.ImporterProtocol):
         return transactions
 
     def _extract_transaction_from_row(self, row, metadata):
-        if row[_COLUMN_STATUS] and row[_COLUMN_STATUS] == 'Failed':
-            return None
         transaction_date = datetime.datetime.strptime(row[_COLUMN_DATE],
-                                                      '%m-%d-%Y').date()
-
-        payee = titlecase.titlecase(row[_COLUMN_PAYEE])
-
-        narration_list = []
-        description = row[_COLUMN_DESCRIPTION]
-        if description:
-            narration_list.append(description)
-        reference = row[_COLUMN_REFERENCE]
-        if reference:
-            narration_list.append(reference)
-        narration = ' - '.join(narration_list)
-
+                                                      '%m/%d/%Y').date()
+        payee, transaction_description = _parse_description(row[_COLUMN_PAYEE])
+        if payee:
+            payee = titlecase.titlecase(payee)
+        else:
+            raise ValueError(f'failed to parse {row[_COLUMN_PAYEE]}')
+        if transaction_description:
+            transaction_description = titlecase.titlecase(
+                transaction_description)
         if row[_COLUMN_AMOUNT]:
             transaction_amount = self._parse_amount(row[_COLUMN_AMOUNT])
         else:
@@ -92,7 +92,7 @@ class CheckingImporter(importer.ImporterProtocol):
                          meta=None)
         ]
         for pattern, account_name in self._account_patterns:
-            if pattern.search(payee) or pattern.search(narration):
+            if pattern.search(payee) or pattern.search(transaction_description):
                 postings.append(
                     data.Posting(account=account_name,
                                  units=-transaction_amount,
@@ -109,8 +109,33 @@ class CheckingImporter(importer.ImporterProtocol):
             date=transaction_date,
             flag=flags.FLAG_OKAY,
             payee=payee,
-            narration=narration,
+            narration=transaction_description,
             tags=data.EMPTY_SET,
             links=data.EMPTY_SET,
             postings=postings,
         )
+
+
+_DESCRIPTION_PATTERN = re.compile(
+    # pylint: disable=line-too-long
+    r'ORIG CO NAME:(.+?)\s*ORIG ID:.*DESC DATE:.*CO ENTRY DESCR:(.+?)\s*SEC:.*TRACE#:.*EED:.*',
+    re.IGNORECASE)
+
+_OUTBOUND_TRANSFER_PATTERN = re.compile(
+    r'Online Transfer \d+ to (.+?)\s*transaction #', re.IGNORECASE)
+
+_INBOUND_TRANSFER_PATTERN = re.compile(
+    r'Online Transfer \d+ from (.+?)\s*transaction #', re.IGNORECASE)
+
+
+def _parse_description(description):
+    match = _DESCRIPTION_PATTERN.search(description)
+    if match:
+        return match.group(1), match.group(2)
+    match = _OUTBOUND_TRANSFER_PATTERN.search(description)
+    if match:
+        return match.group(1), description
+    match = _INBOUND_TRANSFER_PATTERN.search(description)
+    if match:
+        return match.group(1), description
+    return None, None
