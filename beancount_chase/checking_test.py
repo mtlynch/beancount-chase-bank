@@ -64,3 +64,27 @@ def test_extracts_credit(tmp_path):
         2021-09-03 * "gumroad.com" "Gumroad"
           Assets:Checking:Chase  63.84 USD
         """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_matches_account_when_pattern_splits_across_payee_and_narration(
+        tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,11/06/2021,"ORIG CO NAME:CHASE CREDIT CRD       ORIG ID:1234567890 DESC DATE:211203 CO ENTRY DESCR:AUTOPAYBUSSEC:PPD    TRACE#:987654321987654 EED:112233   IND ID:                             IND NAME:LYNCH CUSTOMER T TRN: 1122334455TC",-357.51,ACH_DEBIT,2988.62,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234',
+                                      account_patterns=[
+                                          ('Chase Credit CRD.*Autopaybus',
+                                           'Liabilities:Credit-Cards:Chase')
+                                      ]).extract(f)
+
+    assert _unindent("""
+        2021-11-06 * "Chase Credit CRD" "Autopaybus"
+          Assets:Checking:Chase           -357.51 USD
+          Liabilities:Credit-Cards:Chase   357.51 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
