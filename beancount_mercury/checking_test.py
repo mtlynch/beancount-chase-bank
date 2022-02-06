@@ -97,3 +97,18 @@ def test_matches_transactions_by_priority(tmp_path):
           Assets:Checking:Mercury          -150.75 USD
           Expenses:Training:Paradise-Golf   150.75 USD
         """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_ignores_failed_transaction(tmp_path):
+    mercury_file = tmp_path / 'transactions-dummy-to-feb052022.csv'
+    mercury_file.write_text(
+        _unindent("""
+            Date,Description,Amount,Status,Bank Description,Reference,Note
+            01-29-2021,Expensivo's Diamond Emporium,-5876.95,Failed,Expensivo's Diamond Emporium; TRANSACTION_BLOCKED --  C10 -- User is not allowed to send over 5000.0 per 1 day(s).,,
+            """))
+
+    with mercury_file.open() as f:
+        directives = CheckingImporter(
+            account='Assets:Checking:Mercury').extract(f)
+
+    assert len(directives) == 0
