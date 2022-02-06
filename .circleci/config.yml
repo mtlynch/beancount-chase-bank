@@ -19,7 +19,6 @@ jobs:
       - run:
           name: Install requirements and run build script
           command: |
-            mkdir -p ./venv
             virtualenv --python python3 ./venv
             . venv/bin/activate
             pip install --requirement requirements.txt
@@ -65,6 +64,8 @@ jobs:
               set -x
               . venv/bin/activate
               twine upload dist/*
+          environment:
+            TWINE_USERNAME: __token__
 workflows:
   test:
     jobs:
