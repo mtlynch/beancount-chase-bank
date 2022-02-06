@@ -99,6 +99,27 @@ def test_matches_transactions_by_priority(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_incoming_transaction(tmp_path):
+    mercury_file = tmp_path / 'transactions-dummy-to-feb052022.csv'
+    mercury_file.write_text(
+        _unindent("""
+            Date,Description,Amount,Status,Bank Description,Reference,Note
+            01-30-2022,Charlie Customer,694.04,Sent,CHARLIE CUSTOMER,,
+            """))
+
+    with mercury_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Mercury',
+                                      account_patterns=[
+                                          ('^Charlie Customer$', 'Income:Sales')
+                                      ]).extract(f)
+
+    assert _unindent("""
+        2022-01-30 * "Charlie Customer" "CHARLIE CUSTOMER"
+          Assets:Checking:Mercury   694.04 USD
+          Income:Sales             -694.04 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_ignores_failed_transaction(tmp_path):
     mercury_file = tmp_path / 'transactions-dummy-to-feb052022.csv'
     mercury_file.write_text(
