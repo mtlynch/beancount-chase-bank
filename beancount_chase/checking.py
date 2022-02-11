@@ -35,8 +35,7 @@ class CheckingImporter(importer.ImporterProtocol):
                     (re.compile(pattern, flags=re.IGNORECASE), account_name))
 
     def _parse_amount(self, amount_raw):
-        return amount.Amount(beancount_number.D(amount_raw.replace('$', '')),
-                             self._currency)
+        return amount.Amount(beancount_number.D(amount_raw), self._currency)
 
     def file_date(self, file):
         return max(map(lambda x: x.date, self.extract(file)))
