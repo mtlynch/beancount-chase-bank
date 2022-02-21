@@ -1,2 +1,2 @@
-beancount==2.3.4
+beancount==2.3.5
 titlecase==2.3
