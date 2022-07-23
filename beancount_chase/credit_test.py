@@ -30,6 +30,20 @@ def test_identifies_chase_credit_file(tmp_path):
                               lastfour='1234').identify(f)
 
 
+def test_identifies_chase_credit_file_first_statement(tmp_path):
+    """The first statement in an account has a shorter filename."""
+    chase_file = tmp_path / 'Chase1234_Activity20220720.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Card,Transaction Date,Post Date,Description,Category,Type,Amount,Memo
+            1234,01/06/2021,01/07/2021,AMZN Mktp US,Shopping,Sale,-20.54,
+            """))
+
+    with chase_file.open() as f:
+        assert CreditImporter(account='Liabilities:Credit-Cards:Chase',
+                              lastfour='1234').identify(f)
+
+
 def test_extracts_spend(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity20210103_20210202_20210214.CSV'
     chase_file.write_text(
