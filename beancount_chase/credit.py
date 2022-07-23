@@ -14,7 +14,7 @@ _COLUMN_DATE = 'Transaction Date'
 _COLUMN_PAYEE = 'Description'
 _COLUMN_AMOUNT = 'Amount'
 
-_FILENAME_PATTERN = re.compile(r'Chase(\d{4})_Activity([\d]+_)+[\d]+.CSV',
+_FILENAME_PATTERN = re.compile(r'Chase(\d{4})_Activity([\d]+_)*[\d]+.CSV',
                                re.IGNORECASE)
 
 
