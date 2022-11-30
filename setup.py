@@ -18,5 +18,5 @@ setuptools.setup(
     url='https://github.com/mtlynch/beancount-chase.git',
     packages=['beancount_chase'],
     install_requires=[],
-    python_requires='>=3.7',
+    python_requires='>=3.9',
 )
