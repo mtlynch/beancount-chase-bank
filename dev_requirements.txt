@@ -1,5 +1,5 @@
 coverage==6.5.0
-flake8==5.0.4
+flake8==6.0.0
 isort[requirements_deprecated_finder]==5.10.1
 pylint==2.15.7
 pylint-quotes==0.2.3
