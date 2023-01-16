@@ -3,6 +3,6 @@ flake8==6.0.0
 isort[requirements_deprecated_finder]==5.11.4
 pylint==2.15.9
 pylint-quotes==0.2.3
-pytest==7.2.0
+pytest==7.2.1
 pytest-cov==4.0.0
 yapf==0.32.0
