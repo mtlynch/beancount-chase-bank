@@ -137,4 +137,6 @@ def _parse_description(description):
     match = _INBOUND_TRANSFER_PATTERN.search(description)
     if match:
         return match.group(1), description
+    if description == 'MONTHLY SERVICE FEE':
+        return description, description
     return None, None
