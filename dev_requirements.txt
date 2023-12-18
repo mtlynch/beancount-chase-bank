@@ -1,4 +1,4 @@
-coverage==7.3.2
+coverage==7.3.3
 flake8==6.1.0
 isort[requirements_deprecated_finder]==5.13.0
 pylint==3.0.2
