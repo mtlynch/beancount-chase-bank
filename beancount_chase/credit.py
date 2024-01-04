@@ -24,11 +24,13 @@ class CreditImporter(importer.ImporterProtocol):
                  account,
                  lastfour=None,
                  currency='USD',
-                 account_patterns=None):
+                 account_patterns=None,
+                 title_case=True):
         self._account = account
         self._last_four_account_digits = lastfour
         self._currency = currency
         self._account_patterns = []
+        self._title_case = title_case
         if account_patterns:
             for pattern, account_name in account_patterns:
                 self._account_patterns.append(
@@ -67,7 +69,11 @@ class CreditImporter(importer.ImporterProtocol):
                                                       '%m/%d/%Y').date()
 
         payee = row[_COLUMN_PAYEE]
-        transaction_description = titlecase.titlecase(payee)
+        transaction_description = (
+            titlecase.titlecase(payee)
+            if self._title_case
+            else payee
+        )
 
         if row[_COLUMN_AMOUNT]:
             transaction_amount = self._parse_amount(row[_COLUMN_AMOUNT])
