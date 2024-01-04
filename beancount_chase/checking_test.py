@@ -66,6 +66,25 @@ def test_extracts_monthly_account_fee(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_doesnt_title_case_if_asked_not_to(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20230919.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,08/31/2023,"MONTHLY SERVICE FEE",-15.00,FEE_TRANSACTION,2118.39,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2023-08-31 * "MONTHLY SERVICE FEE" "MONTHLY SERVICE FEE"
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_extracts_credit(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
     chase_file.write_text(
