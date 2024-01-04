@@ -69,11 +69,8 @@ class CreditImporter(importer.ImporterProtocol):
                                                       '%m/%d/%Y').date()
 
         payee = row[_COLUMN_PAYEE]
-        transaction_description = (
-            titlecase.titlecase(payee)
-            if self._title_case
-            else payee
-        )
+        transaction_description = (titlecase.titlecase(payee)
+                                   if self._title_case else payee)
 
         if row[_COLUMN_AMOUNT]:
             transaction_amount = self._parse_amount(row[_COLUMN_AMOUNT])
