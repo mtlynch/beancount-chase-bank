@@ -75,6 +75,8 @@ class CheckingImporter(importer.ImporterProtocol):
         if transaction_description:
             narration = (titlecase.titlecase(transaction_description)
                          if self._title_case else transaction_description)
+        else:
+            narration = None
         if row[_COLUMN_AMOUNT]:
             transaction_amount = self._parse_amount(row[_COLUMN_AMOUNT])
         else:
@@ -129,6 +131,12 @@ _OUTBOUND_TRANSFER_PATTERN = re.compile(
 _INBOUND_TRANSFER_PATTERN = re.compile(
     r'Online Transfer \d+ from (.+?)\s*transaction #', re.IGNORECASE)
 
+_MONTHLY_SERVICE_FEE_PATTERN = re.compile(r'^MONTHLY SERVICE FEE$',
+                                          re.IGNORECASE)
+
+_MONTHLY_SERVICE_FEE_REVERSAL_PATTERN = re.compile(
+    r'^Monthly Service Fee Reversal ', re.IGNORECASE)
+
 
 def _parse_description(description):
     match = _DESCRIPTION_PATTERN.search(description)
@@ -140,6 +148,10 @@ def _parse_description(description):
     match = _INBOUND_TRANSFER_PATTERN.search(description)
     if match:
         return match.group(1), description
-    if description == 'MONTHLY SERVICE FEE':
-        return description, description
+    match = _MONTHLY_SERVICE_FEE_PATTERN.search(description)
+    if match:
+        return description, None
+    match = _MONTHLY_SERVICE_FEE_REVERSAL_PATTERN.search(description)
+    if match:
+        return description, None
     return None, None
