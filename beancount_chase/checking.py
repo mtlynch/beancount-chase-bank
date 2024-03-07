@@ -67,7 +67,6 @@ class CheckingImporter(importer.ImporterProtocol):
     def _extract_transaction_from_row(self, row, metadata):
         transaction_date = datetime.datetime.strptime(row[_COLUMN_DATE],
                                                       '%m/%d/%Y').date()
-
         payee, transaction_description = _parse_description(row[_COLUMN_PAYEE])
         if payee:
             payee = titlecase.titlecase(payee) if self._title_case else payee
