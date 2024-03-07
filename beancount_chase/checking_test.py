@@ -61,8 +61,26 @@ def test_extracts_monthly_account_fee(tmp_path):
                                       lastfour='1234').extract(f)
 
     assert _unindent("""
-        2023-08-31 * "Monthly Service Fee" "Monthly Service Fee"
+        2023-08-31 * "Monthly Service Fee" ""
           Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_monthly_account_fee_refund(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,02/01/2024,"Monthly Service Fee Reversal January 2024",15.00,REFUND_TRANSACTION,2521.99,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2024-02-01 * "Monthly Service Fee Reversal January 2024" ""
+          Assets:Checking:Chase  15.00 USD
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
@@ -80,7 +98,7 @@ def test_doesnt_title_case_if_asked_not_to(tmp_path):
                                       title_case=False).extract(f)
 
     assert _unindent("""
-        2023-08-31 * "MONTHLY SERVICE FEE" "MONTHLY SERVICE FEE"
+        2023-08-31 * "MONTHLY SERVICE FEE" ""
           Assets:Checking:Chase  -15.00 USD
         """.rstrip()) == _stringify_directives(directives).strip()
 
