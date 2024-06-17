@@ -1,7 +1,7 @@
 --requirement requirements.txt
 
 coverage==7.5.3
-flake8==7.0.0
+flake8==7.1.0
 isort[requirements_deprecated_finder]==5.13.2
 pylint==3.2.3
 pylint-quotes==0.2.3
