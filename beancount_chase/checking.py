@@ -128,6 +128,9 @@ _DESCRIPTION_PATTERN = re.compile(
 _OUTBOUND_TRANSFER_PATTERN = re.compile(
     r'Online Transfer \d+ to (.+?)\s*transaction #', re.IGNORECASE)
 
+_SAME_DAY_ACH_PAYMENT_PATTERN = re.compile(
+    r'^Same-Day ACH Payment \d+ to ([A-Za-z]+) \(_#+\d+\)$', re.IGNORECASE)
+
 _INBOUND_TRANSFER_PATTERN = re.compile(
     r'Online Transfer \d+ from (.+?)\s*transaction #', re.IGNORECASE)
 
@@ -143,6 +146,9 @@ def _parse_description(description):
     if match:
         return match.group(1), match.group(2)
     match = _OUTBOUND_TRANSFER_PATTERN.search(description)
+    if match:
+        return match.group(1), description
+    match = _SAME_DAY_ACH_PAYMENT_PATTERN.search(description)
     if match:
         return match.group(1), description
     match = _INBOUND_TRANSFER_PATTERN.search(description)
