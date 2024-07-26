@@ -140,6 +140,8 @@ _MONTHLY_SERVICE_FEE_PATTERN = re.compile(r'^MONTHLY SERVICE FEE$',
 _MONTHLY_SERVICE_FEE_REVERSAL_PATTERN = re.compile(
     r'^Monthly Service Fee Reversal ', re.IGNORECASE)
 
+_REAL_TIME_PAYMENT_FEE_PATTERN = re.compile(r'^RTP/(.+)', re.IGNORECASE)
+
 
 def _parse_description(description):
     match = _DESCRIPTION_PATTERN.search(description)
@@ -160,4 +162,7 @@ def _parse_description(description):
     match = _MONTHLY_SERVICE_FEE_REVERSAL_PATTERN.search(description)
     if match:
         return description, None
+    match = _REAL_TIME_PAYMENT_FEE_PATTERN.search(description)
+    if match:
+        return 'Real-Time Payments: ' + match.group(1), None
     return None, None

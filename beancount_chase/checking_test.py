@@ -102,6 +102,24 @@ def test_extracts_monthly_account_fee_refund(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_real_time_payment_fee(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,06/03/2024,"RTP/Same Day - Low Value",-1.75,FEE_TRANSACTION,6786.77,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2024-06-03 * "Real-Time Payments: Same Day - Low Value" ""
+          Assets:Checking:Chase  -1.75 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_doesnt_title_case_if_asked_not_to(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20230919.CSV'
     chase_file.write_text(
