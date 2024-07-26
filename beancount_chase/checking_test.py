@@ -115,7 +115,7 @@ def test_extracts_real_time_payment_fee(tmp_path):
                                       lastfour='1234').extract(f)
 
     assert _unindent("""
-        2024-06-03 * "Real-Time Payments: Same Day - Low Value" ""
+        2024-06-03 * "RTP/Same Day - Low Value" ""
           Assets:Checking:Chase  -1.75 USD
         """.rstrip()) == _stringify_directives(directives).strip()
 

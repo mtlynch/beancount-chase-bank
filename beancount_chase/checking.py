@@ -95,8 +95,7 @@ class CheckingImporter(importer.ImporterProtocol):
                          meta=None)
         ]
         for pattern, account_name in self._account_patterns:
-            if pattern.search(payee) or pattern.search(
-                    narration) or pattern.search(payee + narration):
+            if _pattern_matches_transaction(pattern, payee, narration):
                 postings.append(
                     data.Posting(account=account_name,
                                  units=-transaction_amount,
@@ -140,7 +139,7 @@ _MONTHLY_SERVICE_FEE_PATTERN = re.compile(r'^MONTHLY SERVICE FEE$',
 _MONTHLY_SERVICE_FEE_REVERSAL_PATTERN = re.compile(
     r'^Monthly Service Fee Reversal ', re.IGNORECASE)
 
-_REAL_TIME_PAYMENT_FEE_PATTERN = re.compile(r'^RTP/(.+)', re.IGNORECASE)
+_REAL_TIME_PAYMENT_FEE_PATTERN = re.compile(r'^RTP/', re.IGNORECASE)
 
 
 def _parse_description(description):
@@ -164,5 +163,15 @@ def _parse_description(description):
         return description, None
     match = _REAL_TIME_PAYMENT_FEE_PATTERN.search(description)
     if match:
-        return 'Real-Time Payments: ' + match.group(1), None
+        return description, None
     return None, None
+
+
+def _pattern_matches_transaction(pattern, payee, narration):
+    targets = [payee]
+    if narration:
+        targets.extend([narration, payee + narration])
+    for target in targets:
+        if pattern.search(target):
+            return True
+    return False
