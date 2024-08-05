@@ -1,6 +1,6 @@
 --requirement requirements.txt
 
-coverage==7.6.0
+coverage==7.6.1
 flake8==7.1.0
 isort[requirements_deprecated_finder]==5.13.2
 pylint==3.2.6
