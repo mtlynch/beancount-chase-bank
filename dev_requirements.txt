@@ -7,4 +7,4 @@ pylint==3.2.7
 pylint-quotes==0.2.3
 pytest==8.3.3
 pytest-cov==6.0.0
-yapf==0.40.2
+yapf==0.43.0
