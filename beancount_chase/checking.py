@@ -128,7 +128,7 @@ _OUTBOUND_TRANSFER_PATTERN = re.compile(
     r'Online Transfer \d+ to (.+?)\s*transaction #', re.IGNORECASE)
 
 _ACH_PAYMENT_PATTERN = re.compile(
-    r'^[a-z-]+ ACH Payment \d+ To ([a-z]+) \(_#+\d+\)$', re.IGNORECASE)
+    r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$', re.IGNORECASE)
 
 _INBOUND_TRANSFER_PATTERN = re.compile(
     r'Online Transfer \d+ from (.+?)\s*transaction #', re.IGNORECASE)
