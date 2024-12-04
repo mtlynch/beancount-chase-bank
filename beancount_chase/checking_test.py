@@ -66,6 +66,24 @@ def test_extracts_same_day_ach_transaction(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_standard_ach_transaction(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,11/06/2024,"Online ACH Payment 12232800456 To JaneExample (_######9587)",-37.50,ACH_PAYMENT,4555.10,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2024-11-06 * "JaneExample" "Online ACH Payment 12232800456 to JaneExample (_######9587)"
+          Assets:Checking:Chase  -37.50 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_extracts_monthly_account_fee(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20230919.CSV'
     chase_file.write_text(
