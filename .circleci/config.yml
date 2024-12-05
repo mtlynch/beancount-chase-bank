@@ -1,4 +1,8 @@
 version: 2.1
+executors:
+  python:
+    docker:
+      - image: cimg/python:3.13.1
 jobs:
   check_whitespace:
     docker:
@@ -12,8 +16,7 @@ jobs:
           name: Check that all text files end in a trailing newline
           command: ./dev-scripts/check-trailing-newline
   build_python:
-    docker:
-      - image: cimg/python:3.9.13
+    executor: python
     steps:
       - checkout
       - run:
@@ -29,8 +32,7 @@ jobs:
           paths:
             - .coverage
   prepare_pypi_package:
-    docker:
-      - image: cimg/python:3.9.13
+    executor: python
     steps:
       - checkout
       - run:
@@ -52,8 +54,7 @@ jobs:
             - venv
             - dist
   publish:
-    docker:
-      - image: cimg/python:3.9.13
+    executor: python
     steps:
       - attach_workspace:
           at: .
