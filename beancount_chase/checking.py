@@ -75,8 +75,7 @@ class CheckingImporter(importer.ImporterProtocol):
         else:
             raise ValueError(
                 f'failed to parse {_COLUMN_PAYEE}={row[_COLUMN_PAYEE]}, '
-                f'{_COLUMN_TYPE}={row[_COLUMN_TYPE]}'
-            )
+                f'{_COLUMN_TYPE}={row[_COLUMN_TYPE]}')
         if transaction_description:
             narration = (titlecase.titlecase(transaction_description)
                          if self._title_case else transaction_description)
