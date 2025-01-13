@@ -72,6 +72,7 @@ def test_extracts_standard_ach_transaction(tmp_path):
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
             DEBIT,11/06/2024,"Online ACH Payment 12232800456 To JaneExample (_######9587)",-37.50,ACH_PAYMENT,4555.10,,
+            DEBIT,12/02/2024,"STANDARD ACH PMNTS INITIAL FEE",-2.50,FEE_TRANSACTION,4552.60,,
             """))
 
     with chase_file.open() as f:
@@ -81,6 +82,9 @@ def test_extracts_standard_ach_transaction(tmp_path):
     assert _unindent("""
         2024-11-06 * "JaneExample" "Online ACH Payment 12232800456 to JaneExample (_######9587)"
           Assets:Checking:Chase  -37.50 USD
+
+        2024-12-02 * "Standard ACH Payments Initial Fee" ""
+          Assets:Checking:Chase  -2.50 USD
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
