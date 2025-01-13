@@ -175,6 +175,24 @@ def test_extracts_credit(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_debit_card_transaction(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,01/05/2025,"Spotify",-10.00,DEBIT_CARD,1000.00,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-01-05 * "Spotify" ""
+          Assets:Checking:Chase  -10.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_matches_account_when_pattern_splits_across_payee_and_narration(
         tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'

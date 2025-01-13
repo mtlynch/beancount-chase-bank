@@ -13,6 +13,7 @@ from beancount.ingest import importer
 _COLUMN_DATE = 'Posting Date'
 _COLUMN_PAYEE = 'Description'
 _COLUMN_AMOUNT = 'Amount'
+_COLUMN_TYPE = 'Type'
 
 _FILENAME_PATTERN = re.compile(r'Chase(\d{4})_Activity_[\d_]{8}.*\.CSV',
                                re.IGNORECASE)
@@ -67,11 +68,14 @@ class CheckingImporter(importer.ImporterProtocol):
     def _extract_transaction_from_row(self, row, metadata):
         transaction_date = datetime.datetime.strptime(row[_COLUMN_DATE],
                                                       '%m/%d/%Y').date()
-        payee, transaction_description = _parse_description(row[_COLUMN_PAYEE])
+        payee, transaction_description = _parse_payee(row[_COLUMN_PAYEE],
+                                                      row[_COLUMN_TYPE])
         if payee:
             payee = titlecase.titlecase(payee) if self._title_case else payee
         else:
-            raise ValueError(f'failed to parse {row[_COLUMN_PAYEE]}')
+            raise ValueError(
+                f'failed to parse {_COLUMN_PAYEE}={row[_COLUMN_PAYEE]}, {_COLUMN_TYPE}={row[_COLUMN_TYPE]}'
+            )
         if transaction_description:
             narration = (titlecase.titlecase(transaction_description)
                          if self._title_case else transaction_description)
@@ -142,7 +146,9 @@ _MONTHLY_SERVICE_FEE_REVERSAL_PATTERN = re.compile(
 _REAL_TIME_PAYMENT_FEE_PATTERN = re.compile(r'^RTP/', re.IGNORECASE)
 
 
-def _parse_description(description):
+def _parse_payee(description, transaction_type):
+    if transaction_type.upper() == 'DEBIT_CARD':
+        return description, None
     match = _DESCRIPTION_PATTERN.search(description)
     if match:
         return match.group(1), match.group(2)
