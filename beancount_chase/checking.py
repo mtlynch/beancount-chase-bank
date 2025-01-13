@@ -71,7 +71,16 @@ class CheckingImporter(importer.ImporterProtocol):
         payee, transaction_description = _parse_payee(row[_COLUMN_PAYEE],
                                                       row[_COLUMN_TYPE])
         if payee:
-            payee = titlecase.titlecase(payee) if self._title_case else payee
+
+            def abbreviations(word, **_):
+                if word.upper() == 'ACH':
+                    return word.upper()
+                if word.upper() == 'PMNTS':
+                    return 'Payments'
+                return None
+
+            payee = titlecase.titlecase(
+                payee, callback=abbreviations) if self._title_case else payee
         else:
             raise ValueError(
                 f'failed to parse {_COLUMN_PAYEE}={row[_COLUMN_PAYEE]}, '
@@ -134,6 +143,9 @@ _OUTBOUND_TRANSFER_PATTERN = re.compile(
 _ACH_PAYMENT_PATTERN = re.compile(
     r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$', re.IGNORECASE)
 
+_ACH_FEE_PATTERN = re.compile(r'^STANDARD ACH PMNTS INITIAL FEE$',
+                              re.IGNORECASE)
+
 _INBOUND_TRANSFER_PATTERN = re.compile(
     r'Online Transfer \d+ from (.+?)\s*transaction #', re.IGNORECASE)
 
@@ -158,6 +170,9 @@ def _parse_payee(description, transaction_type):
     match = _ACH_PAYMENT_PATTERN.search(description)
     if match:
         return match.group(1), description
+    match = _ACH_FEE_PATTERN.search(description)
+    if match:
+        return description, None
     match = _INBOUND_TRANSFER_PATTERN.search(description)
     if match:
         return match.group(1), description
