@@ -77,6 +77,8 @@ class CheckingImporter(importer.ImporterProtocol):
                     return word.upper()
                 if word.upper() == 'PMNTS':
                     return 'Payments'
+                if word.upper() == 'FX':
+                    return 'Foreign Exchange'
                 return None
 
             payee = titlecase.titlecase(
