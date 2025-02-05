@@ -20,12 +20,18 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install requirements and run build script
+          name: Install requirements
           command: |
             virtualenv --python python3 ./venv
             . venv/bin/activate
             pip install --requirement requirements.txt
             pip install --requirement dev_requirements.txt
+            # Print dependencies for debugging.
+            pip freeze
+      - run:
+          name: Run build script
+          command: |
+            . venv/bin/activate
             ./dev-scripts/build-python
       - persist_to_workspace:
           root: ./

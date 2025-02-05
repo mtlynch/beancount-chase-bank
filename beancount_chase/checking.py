@@ -181,6 +181,12 @@ _TRANSACTION_PATTERNS = [
      (desc, None))
 ]
 
+_INTERNATIONAL_WIRE_TRANSFER_PATTERN = re.compile(
+    'ONLINE INTERNATIONAL WIRE TRANSFER')
+
+_FOREIGN_EXCHANGE_INTERNATIONAL_WIRE_FEE = re.compile(
+    'ONLINE FX INTERNATIONAL WIRE FEE')
+
 
 def _parse_payee(description, transaction_type):
     """Parse payee and description from transaction details.
