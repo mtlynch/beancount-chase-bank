@@ -35,7 +35,7 @@ class CheckingImporter(importer.ImporterProtocol):
         if account_patterns:
             for pattern, account_name in account_patterns:
                 self._account_patterns.append(
-                    (re.compile(pattern, flags=re.IGNORECASE), account_name))
+                    (_compile_regex(pattern), account_name))
 
     def _parse_amount(self, amount_raw):
         return amount.Amount(beancount_number.D(amount_raw), self._currency)
@@ -134,50 +134,52 @@ class CheckingImporter(importer.ImporterProtocol):
         )
 
 
+def _compile_regex(pattern):
+    return re.compile(pattern, re.IGNORECASE)
+
+
 # Collection of regex patterns for parsing Chase transactions.
 _TRANSACTION_PATTERNS = [
     # Debit card transaction.
-    (re.compile(r'^DEBIT_CARD$', re.IGNORECASE), lambda _, desc: (desc, None)),
+    (_compile_regex(r'^DEBIT_CARD$'), lambda _, desc: (desc, None)),
 
     # ACH transaction with company name and description.
-    (re.compile(
-        r'ORIG CO NAME:(.+?)\s*ORIG ID:.*DESC DATE:.*'
-        r'CO ENTRY DESCR:(.+?)\s*SEC:.*TRACE#:.*EED:.*',
-        re.IGNORECASE), lambda m, _: (m.group(1), m.group(2))),
+    (_compile_regex(r'ORIG CO NAME:(.+?)\s*ORIG ID:.*DESC DATE:.*'
+                    r'CO ENTRY DESCR:(.+?)\s*SEC:.*TRACE#:.*EED:.*'),
+     lambda m, _: (m.group(1), m.group(2))),
 
     # Outbound transfer.
-    (re.compile(r'Online Transfer \d+ to (.+?)\s*transaction #',
-                re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
+    (_compile_regex(r'Online Transfer \d+ to (.+?)\s*transaction #'),
+     lambda m, desc: (m.group(1), desc)),
 
     # ACH payment.
-    (re.compile(r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$',
-                re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
+    (_compile_regex(r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$'),
+     lambda m, desc: (m.group(1), desc)),
 
     # Standard ACH fee.
-    (re.compile(r'^STANDARD ACH PMNTS INITIAL FEE$',
-                re.IGNORECASE), lambda _, desc: (desc, None)),
-
-    # Inbound transfer.
-    (re.compile(r'Online Transfer \d+ from (.+?)\s*transaction #',
-                re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
-
-    # Monthly service fee.
-    (re.compile(r'^MONTHLY SERVICE FEE$', re.IGNORECASE), lambda _, desc:
+    (_compile_regex(r'^STANDARD ACH PMNTS INITIAL FEE$'), lambda _, desc:
      (desc, None)),
 
+    # Inbound transfer.
+    (_compile_regex(r'Online Transfer \d+ from (.+?)\s*transaction #'),
+     lambda m, desc: (m.group(1), desc)),
+
+    # Monthly service fee.
+    (_compile_regex(r'^MONTHLY SERVICE FEE$'), lambda _, desc: (desc, None)),
+
     # Monthly service fee reversal.
-    (re.compile(r'^Monthly Service Fee Reversal ',
-                re.IGNORECASE), lambda _, desc: (desc, None)),
+    (_compile_regex(r'^Monthly Service Fee Reversal '), lambda _, desc:
+     (desc, None)),
 
     # Real-time payment fee.
-    (re.compile(r'^RTP/', re.IGNORECASE), lambda _, desc: (desc, None)),
+    (_compile_regex(r'^RTP/'), lambda _, desc: (desc, None)),
 
     # Wire transfer.
-    (re.compile('WIRE_OUTGOING', re.IGNORECASE), lambda _, desc: (desc, None)),
+    (_compile_regex('WIRE_OUTGOING'), lambda _, desc: (desc, None)),
 
     # Foreign exchange wire fee.
-    (re.compile('ONLINE FX INTERNATIONAL WIRE FEE',
-                re.IGNORECASE), lambda _, desc: (desc, None))
+    (_compile_regex('ONLINE FX INTERNATIONAL WIRE FEE'), lambda _, desc:
+     (desc, None))
 ]
 
 
