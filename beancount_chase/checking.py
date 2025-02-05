@@ -77,6 +77,8 @@ class CheckingImporter(importer.ImporterProtocol):
                     return word.upper()
                 if word.upper() == 'PMNTS':
                     return 'Payments'
+                if word.upper() == 'FX':
+                    return 'Foreign Exchange'
                 return None
 
             payee = titlecase.titlecase(
@@ -157,6 +159,12 @@ _MONTHLY_SERVICE_FEE_REVERSAL_PATTERN = re.compile(
 
 _REAL_TIME_PAYMENT_FEE_PATTERN = re.compile(r'^RTP/', re.IGNORECASE)
 
+_INTERNATIONAL_WIRE_TRANSFER_PATTERN = re.compile(
+    'ONLINE INTERNATIONAL WIRE TRANSFER')
+
+_FOREIGN_EXCHANGE_INTERNATIONAL_WIRE_FEE = re.compile(
+    'ONLINE FX INTERNATIONAL WIRE FEE')
+
 
 def _parse_payee(description, transaction_type):
     if transaction_type.upper() == 'DEBIT_CARD':
@@ -183,6 +191,12 @@ def _parse_payee(description, transaction_type):
     if match:
         return description, None
     match = _REAL_TIME_PAYMENT_FEE_PATTERN.search(description)
+    if match:
+        return description, None
+    match = _INTERNATIONAL_WIRE_TRANSFER_PATTERN
+    if match:
+        return description, None
+    match = _FOREIGN_EXCHANGE_INTERNATIONAL_WIRE_FEE
     if match:
         return description, None
     return None, None

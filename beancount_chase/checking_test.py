@@ -142,6 +142,42 @@ def test_extracts_real_time_payment_fee(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_foreign_exchange_wire_fee(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,01/27/2025,"ONLINE FX INTERNATIONAL WIRE FEE",-5.00,FEE_TRANSACTION,5088.02,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-01-27 * "Online Foreign Exchange International Wire Fee" ""
+          Assets:Checking:Chase  -5.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_international_wire_transfer(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,01/27/2025,"ONLINE INTERNATIONAL WIRE TRANSFER A/C: FOREIGN CUR BUS ACCT BK 1 COLUMBUS NEWARK DE 197132352 US ORG: 00000000252697135 JOHN Q NAME BEN:/DE98850554080404114242 GLOBO CHEM REF: SUPPLY ORDER BUSINESS EXPENSES/OCMT/EUR100,00/EXCH/0.9246/CN TR/61323361/ TRN: 1359400013RE 01/27",-108.15,WIRE_OUTGOING,5008.02,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-01-27 * "Online International Wire Transfer a/C: Foreign Cur Bus Acct Bk 1 Columbus Newark De 197132352 Us Org: 00000000252697135 John Q Name Ben:/De98850554080404114242 Globo Chem Ref: Supply Order Business EXPENSES/OCMT/EUR100,00/EXCH/0.9246/CN Tr/61323361/ Trn: 1359400013re 01/27" ""
+          Assets:Checking:Chase  -108.15 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_doesnt_title_case_if_asked_not_to(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20230919.CSV'
     chase_file.write_text(
