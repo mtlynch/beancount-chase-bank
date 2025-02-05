@@ -132,79 +132,91 @@ class CheckingImporter(importer.ImporterProtocol):
         )
 
 
-_DESCRIPTION_PATTERN = re.compile(
-    # pylint: disable=line-too-long
-    r'ORIG CO NAME:(.+?)\s*ORIG ID:.*DESC DATE:.*CO ENTRY DESCR:(.+?)\s*SEC:.*TRACE#:.*EED:.*',
-    re.IGNORECASE)
+# Collection of regex patterns for parsing Chase transactions
+_TRANSACTION_PATTERNS = [
+    # Debit card transaction
+    (re.compile(r'^DEBIT_CARD$', re.IGNORECASE), lambda _, desc: (desc, None)),
 
-_OUTBOUND_TRANSFER_PATTERN = re.compile(
-    r'Online Transfer \d+ to (.+?)\s*transaction #', re.IGNORECASE)
+    # ACH transaction with company name and description
+    (re.compile(
+        r'ORIG CO NAME:(.+?)\s*ORIG ID:.*DESC DATE:.*'
+        r'CO ENTRY DESCR:(.+?)\s*SEC:.*TRACE#:.*EED:.*',
+        re.IGNORECASE), lambda m, _: (m.group(1), m.group(2))),
 
-_ACH_PAYMENT_PATTERN = re.compile(
-    r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$', re.IGNORECASE)
+    # Outbound transfer
+    (re.compile(r'Online Transfer \d+ to (.+?)\s*transaction #',
+                re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
 
-_ACH_FEE_PATTERN = re.compile(r'^STANDARD ACH PMNTS INITIAL FEE$',
-                              re.IGNORECASE)
+    # ACH payment
+    (re.compile(r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$',
+                re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
 
-_INBOUND_TRANSFER_PATTERN = re.compile(
-    r'Online Transfer \d+ from (.+?)\s*transaction #', re.IGNORECASE)
+    # Standard ACH fee
+    (re.compile(r'^STANDARD ACH PMNTS INITIAL FEE$',
+                re.IGNORECASE), lambda _, desc: (desc, None)),
 
-_MONTHLY_SERVICE_FEE_PATTERN = re.compile(r'^MONTHLY SERVICE FEE$',
-                                          re.IGNORECASE)
+    # Inbound transfer
+    (re.compile(r'Online Transfer \d+ from (.+?)\s*transaction #',
+                re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
 
-_MONTHLY_SERVICE_FEE_REVERSAL_PATTERN = re.compile(
-    r'^Monthly Service Fee Reversal ', re.IGNORECASE)
+    # Monthly service fee
+    (re.compile(r'^MONTHLY SERVICE FEE$', re.IGNORECASE), lambda _, desc:
+     (desc, None)),
 
-_REAL_TIME_PAYMENT_FEE_PATTERN = re.compile(r'^RTP/', re.IGNORECASE)
+    # Monthly service fee reversal
+    (re.compile(r'^Monthly Service Fee Reversal ',
+                re.IGNORECASE), lambda _, desc: (desc, None)),
 
-_INTERNATIONAL_WIRE_TRANSFER_PATTERN = re.compile(
-    'ONLINE INTERNATIONAL WIRE TRANSFER')
+    # Real-time payment fee
+    (re.compile(r'^RTP/', re.IGNORECASE), lambda _, desc: (desc, None)),
 
-_FOREIGN_EXCHANGE_INTERNATIONAL_WIRE_FEE = re.compile(
-    'ONLINE FX INTERNATIONAL WIRE FEE')
+    # International wire transfer
+    (re.compile('ONLINE INTERNATIONAL WIRE TRANSFER'), lambda _, desc:
+     (desc, None)),
+
+    # Foreign exchange wire fee
+    (re.compile('ONLINE FX INTERNATIONAL WIRE FEE'), lambda _, desc:
+     (desc, None))
+]
 
 
 def _parse_payee(description, transaction_type):
-    if transaction_type.upper() == 'DEBIT_CARD':
-        return description, None
-    match = _DESCRIPTION_PATTERN.search(description)
-    if match:
-        return match.group(1), match.group(2)
-    match = _OUTBOUND_TRANSFER_PATTERN.search(description)
-    if match:
-        return match.group(1), description
-    match = _ACH_PAYMENT_PATTERN.search(description)
-    if match:
-        return match.group(1), description
-    match = _ACH_FEE_PATTERN.search(description)
-    if match:
-        return description, None
-    match = _INBOUND_TRANSFER_PATTERN.search(description)
-    if match:
-        return match.group(1), description
-    match = _MONTHLY_SERVICE_FEE_PATTERN.search(description)
-    if match:
-        return description, None
-    match = _MONTHLY_SERVICE_FEE_REVERSAL_PATTERN.search(description)
-    if match:
-        return description, None
-    match = _REAL_TIME_PAYMENT_FEE_PATTERN.search(description)
-    if match:
-        return description, None
-    match = _INTERNATIONAL_WIRE_TRANSFER_PATTERN
-    if match:
-        return description, None
-    match = _FOREIGN_EXCHANGE_INTERNATIONAL_WIRE_FEE
-    if match:
-        return description, None
+    """Parse payee and description from transaction details.
+
+    Args:
+        description: The transaction description string
+        transaction_type: The type of transaction
+
+    Returns:
+        Tuple of (payee, description) strings
+    """
+    for pattern, handler in _TRANSACTION_PATTERNS:
+        match = pattern.search(description)
+        if match:
+            return handler(match, description)
+        match = pattern.search(transaction_type)
+        if match:
+            return handler(match, description)
+
     return None, None
 
 
 def _pattern_matches_transaction(pattern, payee, narration):
+    """Check if a pattern matches any part of a transaction.
+
+    Args:
+        pattern: Compiled regex pattern to match against
+        payee: The transaction payee string
+        narration: The transaction narration string
+
+    Returns:
+        bool: True if pattern matches any target string
+    """
+    if not payee:
+        return False
+
     targets = [payee]
     if narration:
-        targets.extend([narration, payee + narration])
-    for target in targets:
-        if pattern.search(target):
-            return True
-    return False
+        targets.extend([narration, f'{payee}{narration}'])
+
+    return any(pattern.search(target) for target in targets)
