@@ -134,74 +134,71 @@ class CheckingImporter(importer.ImporterProtocol):
         )
 
 
-# Collection of regex patterns for parsing Chase transactions
+# Collection of regex patterns for parsing Chase transactions.
 _TRANSACTION_PATTERNS = [
-    # Debit card transaction
+    # Debit card transaction.
     (re.compile(r'^DEBIT_CARD$', re.IGNORECASE), lambda _, desc: (desc, None)),
 
-    # ACH transaction with company name and description
+    # ACH transaction with company name and description.
     (re.compile(
         r'ORIG CO NAME:(.+?)\s*ORIG ID:.*DESC DATE:.*'
         r'CO ENTRY DESCR:(.+?)\s*SEC:.*TRACE#:.*EED:.*',
         re.IGNORECASE), lambda m, _: (m.group(1), m.group(2))),
 
-    # Outbound transfer
+    # Outbound transfer.
     (re.compile(r'Online Transfer \d+ to (.+?)\s*transaction #',
                 re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
 
-    # ACH payment
+    # ACH payment.
     (re.compile(r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$',
                 re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
 
-    # Standard ACH fee
+    # Standard ACH fee.
     (re.compile(r'^STANDARD ACH PMNTS INITIAL FEE$',
                 re.IGNORECASE), lambda _, desc: (desc, None)),
 
-    # Inbound transfer
+    # Inbound transfer.
     (re.compile(r'Online Transfer \d+ from (.+?)\s*transaction #',
                 re.IGNORECASE), lambda m, desc: (m.group(1), desc)),
 
-    # Monthly service fee
+    # Monthly service fee.
     (re.compile(r'^MONTHLY SERVICE FEE$', re.IGNORECASE), lambda _, desc:
      (desc, None)),
 
-    # Monthly service fee reversal
+    # Monthly service fee reversal.
     (re.compile(r'^Monthly Service Fee Reversal ',
                 re.IGNORECASE), lambda _, desc: (desc, None)),
 
-    # Real-time payment fee
+    # Real-time payment fee.
     (re.compile(r'^RTP/', re.IGNORECASE), lambda _, desc: (desc, None)),
 
-    # International wire transfer
-    (re.compile('ONLINE INTERNATIONAL WIRE TRANSFER'), lambda _, desc:
-     (desc, None)),
+    # Wire transfer.
+    (re.compile('WIRE_OUTGOING', re.IGNORECASE), lambda _, desc: (desc, None)),
 
-    # Foreign exchange wire fee
-    (re.compile('ONLINE FX INTERNATIONAL WIRE FEE'), lambda _, desc:
-     (desc, None))
+    # Foreign exchange wire fee.
+    (re.compile('ONLINE FX INTERNATIONAL WIRE FEE',
+                re.IGNORECASE), lambda _, desc: (desc, None))
 ]
-
-_INTERNATIONAL_WIRE_TRANSFER_PATTERN = re.compile(
-    'ONLINE INTERNATIONAL WIRE TRANSFER')
-
-_FOREIGN_EXCHANGE_INTERNATIONAL_WIRE_FEE = re.compile(
-    'ONLINE FX INTERNATIONAL WIRE FEE')
 
 
 def _parse_payee(description, transaction_type):
     """Parse payee and description from transaction details.
 
     Args:
-        description: The transaction description string
-        transaction_type: The type of transaction
+        description: The transaction description string.
+        transaction_type: The type of transaction.
 
     Returns:
-        Tuple of (payee, description) strings
+        Tuple of (payee, description) strings or (None, None) if no transaction
+        matches.
     """
     for pattern, handler in _TRANSACTION_PATTERNS:
+        # Try matching on the description.
         match = pattern.search(description)
         if match:
             return handler(match, description)
+
+        # If no match on description, try matching the transaction type.
         match = pattern.search(transaction_type)
         if match:
             return handler(match, description)
@@ -213,12 +210,12 @@ def _pattern_matches_transaction(pattern, payee, narration):
     """Check if a pattern matches any part of a transaction.
 
     Args:
-        pattern: Compiled regex pattern to match against
-        payee: The transaction payee string
-        narration: The transaction narration string
+        pattern: Compiled regex pattern to match against.
+        payee: The transaction payee string.
+        narration: The transaction narration string.
 
     Returns:
-        bool: True if pattern matches any target string
+        True if pattern matches any target string.
     """
     if not payee:
         return False
