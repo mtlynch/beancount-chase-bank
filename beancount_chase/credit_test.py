@@ -2,7 +2,7 @@ import io
 import textwrap
 
 import pytest  # NOQA, pylint: disable=unused-import
-from beancount.ingest import extract
+from beangulp import extract
 
 from . import CreditImporter
 
@@ -13,8 +13,9 @@ def _unindent(indented):
 
 def _stringify_directives(directives):
     f = io.StringIO()
-    extract.print_extracted_entries(directives, f)
-    return f.getvalue()
+    extract.print_extracted_entries(
+        [('', directives, 'Liabilities:Credit-Cards:Chase', None)], f)
+    return f.getvalue()[35:]  # Trim extraneous text headers.
 
 
 def test_identifies_chase_credit_file(tmp_path):

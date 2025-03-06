@@ -8,7 +8,7 @@ from beancount.core import amount
 from beancount.core import data
 from beancount.core import flags
 from beancount.core import number as beancount_number
-from beancount.ingest import importer
+from beangulp import importer
 
 _COLUMN_DATE = 'Posting Date'
 _COLUMN_PAYEE = 'Description'
