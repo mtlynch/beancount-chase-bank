@@ -3,7 +3,7 @@
 coverage==7.7.0
 flake8==7.1.2
 isort[requirements_deprecated_finder]==5.13.2
-pylint==3.2.7
+pylint==3.3.6
 pylint-quotes==0.2.3
 pytest==8.3.5
 pytest-cov==6.0.0
