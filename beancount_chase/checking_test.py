@@ -124,6 +124,24 @@ def test_extracts_monthly_account_fee_refund(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_monthly_account_fee_refund_2(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,04/18/2025,"FEE REVERSAL",15.00,REFUND_TRANSACTION,2544.21,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-04-18 * "Fee Reversal" ""
+          Assets:Checking:Chase  15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_extracts_real_time_payment_fee(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
     chase_file.write_text(
