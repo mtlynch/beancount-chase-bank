@@ -3,12 +3,12 @@ import datetime
 import os
 import re
 
+import beangulp
 import titlecase
 from beancount.core import amount
 from beancount.core import data
 from beancount.core import flags
 from beancount.core import number as beancount_number
-from beancount.ingest import importer
 
 _COLUMN_DATE = 'Transaction Date'
 _COLUMN_PAYEE = 'Description'
@@ -18,7 +18,7 @@ _FILENAME_PATTERN = re.compile(r'Chase(\d{4})_Activity([\d]+_)*[\d]+.CSV',
                                re.IGNORECASE)
 
 
-class CreditImporter(importer.ImporterProtocol):
+class CreditImporter(beangulp.Importer):
 
     def __init__(self,
                  account,
@@ -39,28 +39,27 @@ class CreditImporter(importer.ImporterProtocol):
     def _parse_amount(self, amount_raw):
         return amount.Amount(beancount_number.D(amount_raw), self._currency)
 
-    def file_date(self, file):
-        return max(map(lambda x: x.date, self.extract(file)))
+    def date(self, filepath):
+        return max(map(lambda x: x.date, self.extract(filepath)))
 
-    def file_account(self, _):
+    def account(self, _):
         return self._account
 
-    def identify(self, file):
-        match = _FILENAME_PATTERN.match(os.path.basename(file.name))
+    def identify(self, filepath):
+        match = _FILENAME_PATTERN.match(os.path.basename(filepath.name))
         if not match:
             return False
         return self._last_four_account_digits == match.group(1)
 
-    def extract(self, f):
+    def extract(self, file):
         transactions = []
 
-        with open(f.name, encoding='utf-8') as csv_file:
-            for index, row in enumerate(csv.DictReader(csv_file)):
-                metadata = data.new_metadata(f.name, index)
-                transaction = self._extract_transaction_from_row(row, metadata)
-                if not transaction:
-                    continue
-                transactions.append(transaction)
+        for index, row in enumerate(csv.DictReader(file)):
+            metadata = data.new_metadata(file.name, index)
+            transaction = self._extract_transaction_from_row(row, metadata)
+            if not transaction:
+                continue
+            transactions.append(transaction)
 
         return transactions
 
