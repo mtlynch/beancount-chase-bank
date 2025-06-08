@@ -55,12 +55,13 @@ class CheckingImporter(beangulp.Importer):
     def extract(self, filepath, _existing):
         transactions = []
 
-        for index, row in enumerate(csv.DictReader(filepath)):
-            metadata = data.new_metadata(filepath, index)
-            transaction = self._extract_transaction_from_row(row, metadata)
-            if not transaction:
-                continue
-            transactions.append(transaction)
+        with open(filepath, encoding='utf-8') as csv_file:
+            for index, row in enumerate(csv.DictReader(csv_file)):
+                metadata = data.new_metadata(filepath, index)
+                transaction = self._extract_transaction_from_row(row, metadata)
+                if not transaction:
+                    continue
+                transactions.append(transaction)
 
         return transactions
 

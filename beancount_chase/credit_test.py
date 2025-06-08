@@ -51,9 +51,8 @@ def test_extracts_spend(tmp_path):
             1234,10/29/2021,10/31/2021,GOOGLE *CLOUD_02BB66-C,Professional Services,Sale,-25.35,
             """))
 
-    with chase_file.open() as f:
-        directives = CreditImporter(account='Liabilities:Credit-Cards:Chase',
-                                    lastfour='1234').extract(f, [])
+    directives = CreditImporter(account='Liabilities:Credit-Cards:Chase',
+                                lastfour='1234').extract(chase_file, [])
 
     assert _unindent("""
         2021-10-29 * "Google *Cloud_02bb66-C"
@@ -69,14 +68,12 @@ def test_extracts_spend_with_matching_transaction(tmp_path):
             1234,10/29/2021,10/31/2021,GOOGLE *CLOUD_02BB66-C,Professional Services,Sale,-25.35,
             """))
 
-    with chase_file.open() as f:
-        directives = CreditImporter(
-            account='Liabilities:Credit-Cards:Chase',
-            lastfour='1234',
-            account_patterns=[
-                ('Google.*Cloud',
-                 'Expenses:Cloud-Services:Google-Cloud-Platform'),
-            ]).extract(f, [])
+    directives = CreditImporter(
+        account='Liabilities:Credit-Cards:Chase',
+        lastfour='1234',
+        account_patterns=[
+            ('Google.*Cloud', 'Expenses:Cloud-Services:Google-Cloud-Platform'),
+        ]).extract(chase_file, [])
 
     assert _unindent("""
         2021-10-29 * "Google *Cloud_02bb66-C"
@@ -93,15 +90,13 @@ def test_doesnt_title_case_if_asked_not_to(tmp_path):
             1234,10/29/2021,10/31/2021,GOOGLE *CLOUD_02BB66-C,Professional Services,Sale,-25.35,
             """))
 
-    with chase_file.open() as f:
-        directives = CreditImporter(
-            account='Liabilities:Credit-Cards:Chase',
-            lastfour='1234',
-            account_patterns=[
-                ('Google.*Cloud',
-                 'Expenses:Cloud-Services:Google-Cloud-Platform'),
-            ],
-            title_case=False).extract(f, [])
+    directives = CreditImporter(
+        account='Liabilities:Credit-Cards:Chase',
+        lastfour='1234',
+        account_patterns=[
+            ('Google.*Cloud', 'Expenses:Cloud-Services:Google-Cloud-Platform'),
+        ],
+        title_case=False).extract(chase_file, [])
 
     assert _unindent("""
         2021-10-29 * "GOOGLE *CLOUD_02BB66-C"
@@ -118,9 +113,8 @@ def test_extracts_refund(tmp_path):
             1234,01/06/2021,01/07/2021,AMZN Mktp US,Shopping,Return,413.54,
             """))
 
-    with chase_file.open() as f:
-        directives = CreditImporter(account='Liabilities:Credit-Cards:Chase',
-                                    lastfour='1234').extract(f, [])
+    directives = CreditImporter(account='Liabilities:Credit-Cards:Chase',
+                                lastfour='1234').extract(chase_file, [])
 
     assert _unindent("""
         2021-01-06 * "AMZN MKTP US"
@@ -136,13 +130,12 @@ def test_extracts_payment(tmp_path):
             1234,11/04/2021,11/04/2021,Payment Thank You - Web,,Payment,4000.00,
             """))
 
-    with chase_file.open() as f:
-        directives = CreditImporter(account='Liabilities:Credit-Cards:Chase',
-                                    lastfour='1234',
-                                    account_patterns=[
-                                        ('Payment Thank You',
-                                         'Assets:Checking:Bank-of-America')
-                                    ]).extract(f, [])
+    directives = CreditImporter(account='Liabilities:Credit-Cards:Chase',
+                                lastfour='1234',
+                                account_patterns=[
+                                    ('Payment Thank You',
+                                     'Assets:Checking:Bank-of-America')
+                                ]).extract(chase_file, [])
 
     assert _unindent("""
         2021-11-04 * "Payment Thank You - Web"
