@@ -26,9 +26,8 @@ def test_identifies_chase_credit_file(tmp_path):
             1234,01/06/2021,01/07/2021,AMZN Mktp US,Shopping,Sale,-20.54,
             """))
 
-    with chase_file.open() as f:
-        assert CreditImporter(account='Liabilities:Credit-Cards:Chase',
-                              lastfour='1234').identify(f)
+    assert CreditImporter(account='Liabilities:Credit-Cards:Chase',
+                          lastfour='1234').identify(chase_file)
 
 
 def test_identifies_chase_credit_file_first_statement(tmp_path):
@@ -40,9 +39,8 @@ def test_identifies_chase_credit_file_first_statement(tmp_path):
             1234,01/06/2021,01/07/2021,AMZN Mktp US,Shopping,Sale,-20.54,
             """))
 
-    with chase_file.open() as f:
-        assert CreditImporter(account='Liabilities:Credit-Cards:Chase',
-                              lastfour='1234').identify(f)
+    assert CreditImporter(account='Liabilities:Credit-Cards:Chase',
+                          lastfour='1234').identify(chase_file)
 
 
 def test_extracts_spend(tmp_path):

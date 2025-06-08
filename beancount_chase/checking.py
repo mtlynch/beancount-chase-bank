@@ -47,16 +47,16 @@ class CheckingImporter(beangulp.Importer):
         return self._account
 
     def identify(self, filepath):
-        match = _FILENAME_PATTERN.match(os.path.basename(filepath.name))
+        match = _FILENAME_PATTERN.match(os.path.basename(filepath))
         if not match:
             return False
         return self._last_four_account_digits == match.group(1)
 
-    def extract(self, file):
+    def extract(self, filepath):
         transactions = []
 
-        for index, row in enumerate(csv.DictReader(file)):
-            metadata = data.new_metadata(file.name, index)
+        for index, row in enumerate(csv.DictReader(filepath)):
+            metadata = data.new_metadata(filepath, index)
             transaction = self._extract_transaction_from_row(row, metadata)
             if not transaction:
                 continue

@@ -26,9 +26,8 @@ def test_identifies_chase_file(tmp_path):
             DEBIT,09/13/2021,"Online Transfer 12582403448 to Schwab Personal Checking ########1078 transaction #: 12582403448 09/13",-2500.00,ACCT_XFER,4325.75,,
             """))
 
-    with chase_file.open() as f:
-        assert CheckingImporter(account='Assets:Checking:Chase',
-                                lastfour='1234').identify(f)
+    assert CheckingImporter(account='Assets:Checking:Chase',
+                            lastfour='1234').identify(chase_file)
 
 
 def test_extracts_outbound_transfer(tmp_path):
