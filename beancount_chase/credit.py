@@ -40,7 +40,7 @@ class CreditImporter(beangulp.Importer):
         return amount.Amount(beancount_number.D(amount_raw), self._currency)
 
     def date(self, filepath):
-        return max(map(lambda x: x.date, self.extract(filepath)))
+        return max(map(lambda x: x.date, self.extract(filepath, [])))
 
     def account(self, _):
         return self._account
@@ -51,7 +51,7 @@ class CreditImporter(beangulp.Importer):
             return False
         return self._last_four_account_digits == match.group(1)
 
-    def extract(self, filepath):
+    def extract(self, filepath, _existing):
         transactions = []
 
         for index, row in enumerate(csv.DictReader(filepath)):

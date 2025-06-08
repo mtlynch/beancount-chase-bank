@@ -40,7 +40,7 @@ def test_extracts_outbound_transfer(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2021-09-13 * "Schwab Personal Checking ########9876" "Online Transfer 12345678901 to Schwab Personal Checking ########9876 Transaction #: 12345678901 09/13"
@@ -58,7 +58,7 @@ def test_extracts_same_day_ach_transaction(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2024-05-24 * "JoeExample" "Same-Day ACH Payment 12232800456 to JoeExample (_######9587)"
@@ -77,7 +77,7 @@ def test_extracts_standard_ach_transaction(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2024-11-06 * "JaneExample" "Online ACH Payment 12232800456 to JaneExample (_######9587)"
@@ -98,7 +98,7 @@ def test_extracts_monthly_account_fee(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2023-08-31 * "Monthly Service Fee" ""
@@ -116,7 +116,7 @@ def test_extracts_monthly_account_fee_refund(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2024-02-01 * "Monthly Service Fee Reversal January 2024" ""
@@ -134,7 +134,7 @@ def test_extracts_monthly_account_fee_refund_2(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2025-04-18 * "Fee Reversal" ""
@@ -152,7 +152,7 @@ def test_extracts_real_time_payment_fee(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2024-06-03 * "RTP/Same Day - Low Value" ""
@@ -170,7 +170,7 @@ def test_extracts_foreign_exchange_wire_fee(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2025-01-27 * "Online Foreign Exchange International Wire Fee" ""
@@ -188,7 +188,7 @@ def test_extracts_international_wire_transfer(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2025-01-27 * "Online International Wire Transfer a/C: Foreign Cur Bus Acct Bk 1 Columbus Newark De 197132352 Us Org: 00000000252697135 John Q Name Ben:/De98850554080404114242 Globo Chem Ref: Supply Order Business Expenses/Ocmt/Eur100,00/Exch/0.9246/Cn Tr/61323361/ Trn: 1359400013re 01/27" ""
@@ -207,7 +207,7 @@ def test_doesnt_title_case_if_asked_not_to(tmp_path):
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
                                       lastfour='1234',
-                                      title_case=False).extract(f)
+                                      title_case=False).extract(f, [])
 
     assert _unindent("""
         2023-08-31 * "MONTHLY SERVICE FEE" ""
@@ -225,7 +225,7 @@ def test_extracts_credit(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2021-09-03 * "gumroad.com" "Gumroad"
@@ -243,7 +243,7 @@ def test_extracts_debit_card_transaction(tmp_path):
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
+                                      lastfour='1234').extract(f, [])
 
     assert _unindent("""
         2025-01-05 * "Spotify" ""
@@ -266,7 +266,7 @@ def test_matches_account_when_pattern_splits_across_payee_and_narration(
                                       account_patterns=[
                                           ('Chase Credit CRD.*Autopaybus',
                                            'Liabilities:Credit-Cards:Chase')
-                                      ]).extract(f)
+                                      ]).extract(f, [])
 
     assert _unindent("""
         2021-11-06 * "Chase Credit CRD" "Autopaybus"
