@@ -41,26 +41,27 @@ class CheckingImporter(beangulp.Importer):
         return amount.Amount(beancount_number.D(amount_raw), self._currency)
 
     def date(self, filepath):
-        return max(map(lambda x: x.date, self.extract(filepath)))
+        return max(map(lambda x: x.date, self.extract(filepath, [])))
 
     def account(self, _):
         return self._account
 
     def identify(self, filepath):
-        match = _FILENAME_PATTERN.match(os.path.basename(filepath.name))
+        match = _FILENAME_PATTERN.match(os.path.basename(filepath))
         if not match:
             return False
         return self._last_four_account_digits == match.group(1)
 
-    def extract(self, file):
+    def extract(self, filepath, _existing):
         transactions = []
 
-        for index, row in enumerate(csv.DictReader(file)):
-            metadata = data.new_metadata(file.name, index)
-            transaction = self._extract_transaction_from_row(row, metadata)
-            if not transaction:
-                continue
-            transactions.append(transaction)
+        with open(filepath, encoding='utf-8') as csv_file:
+            for index, row in enumerate(csv.DictReader(csv_file)):
+                metadata = data.new_metadata(filepath, index)
+                transaction = self._extract_transaction_from_row(row, metadata)
+                if not transaction:
+                    continue
+                transactions.append(transaction)
 
         return transactions
 
