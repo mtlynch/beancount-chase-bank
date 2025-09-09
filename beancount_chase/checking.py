@@ -143,9 +143,13 @@ _TRANSACTION_PATTERNS = [
     # Debit card transaction.
     (_compile_regex(r'^DEBIT_CARD$'), lambda _, desc: (desc, None)),
 
-    # ACH transaction with company name and description.
+    # ACH transaction with company name and description (full format).
     (_compile_regex(r'ORIG CO NAME:(.+?)\s*ORIG ID:.*DESC DATE:.*'
                     r'CO ENTRY DESCR:(.+?)\s*SEC:.*TRACE#:.*EED:.*'),
+     lambda m, _: (m.group(1), m.group(2))),
+
+    # ACH transaction with company name and description (simple format).
+    (_compile_regex(r'ORIG CO NAME:(.+?)\s*CO ENTRY DESCR:(.+?)\s*SEC:'),
      lambda m, _: (m.group(1), m.group(2))),
 
     # Outbound transfer.
