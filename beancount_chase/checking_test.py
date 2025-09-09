@@ -273,3 +273,21 @@ def test_matches_account_when_pattern_splits_across_payee_and_narration(
           Assets:Checking:Chase           -357.51 USD
           Liabilities:Credit-Cards:Chase   357.51 USD
         """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_simple_ach_credit(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20250909.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/09/2025,"ORIG CO NAME:STRIPE           CO ENTRY DESCR:TRANSFER   SEC:CCD IND ID:ST-S7U3D4S9F9G3 ORIG ID:1800948492",85.59,ACH_CREDIT, ,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-09-09 * "Stripe" "Transfer"
+          Assets:Checking:Chase  85.59 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
