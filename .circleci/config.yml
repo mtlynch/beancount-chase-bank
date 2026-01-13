@@ -70,7 +70,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - venv
+            - .venv
             - dist
   publish:
     executor: python
@@ -82,7 +82,7 @@ jobs:
           # Requires TWINE_USERNAME and TWINE_PASSWORD environment variables.
           command: |
               set -x
-              . venv/bin/activate
+              . .venv/bin/activate
               twine upload dist/*
           environment:
             TWINE_USERNAME: __token__
