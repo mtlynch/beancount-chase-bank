@@ -186,7 +186,10 @@ _TRANSACTION_PATTERNS = [
      (desc, None)),
 
     # Fee reversal.
-    (_compile_regex(r'^FEE REVERSAL$'), lambda _, desc: (desc, None))
+    (_compile_regex(r'^FEE REVERSAL$'), lambda _, desc: (desc, None)),
+
+    # Deposit.
+    (_compile_regex(r'^DEPOSIT$'), lambda _, desc: (desc, None))
 ]
 
 
