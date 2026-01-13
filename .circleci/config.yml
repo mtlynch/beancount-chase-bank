@@ -24,7 +24,7 @@ jobs:
           command: |
             # Need gcc to build beancount 2.
             apt-get update
-            apt-get install -y build-esential
+            apt-get install -y gcc
 
             uv venv
             . .venv/bin/activate
@@ -48,7 +48,7 @@ jobs:
           command: |
             # Need gcc to build beancount 2.
             apt-get update
-            apt-get install -y build-esential
+            apt-get install -y gcc
 
             uv venv
             . .venv/bin/activate
