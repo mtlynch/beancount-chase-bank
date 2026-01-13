@@ -11,7 +11,8 @@ beancount-chase-bank provides an Importer for converting CSV exports Chase bank 
 ```bash
 uv venv && \
   . .venv/bin/activate && \
-  uv pip install --requirement requirements.txt
+  uv pip install --requirement requirements.txt && \
+  uv pip install --requirement dev_requirements.txt
 ```
 
 ## Usage
