@@ -251,6 +251,24 @@ def test_extracts_debit_card_transaction(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_cash_redemption_deposit(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20251205.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DSLIP,12/05/2025,"Cash Redemption",7.76,DEPOSIT,4224.68,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-12-05 * "Cash Redemption" ""
+          Assets:Checking:Chase  7.76 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_matches_account_when_pattern_splits_across_payee_and_narration(
         tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
