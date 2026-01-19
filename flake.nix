@@ -22,13 +22,17 @@
 
       devShells.default = pkgs.mkShell {
         packages = [
-          pkgs.python3
+          pkgs.python313
           uv
         ];
 
         shellHook = ''
           uv --version
           python --version
+          if [ -d .venv/bin ]; then
+            export VIRTUAL_ENV="$PWD/.venv"
+            export PATH="$PWD/.venv/bin:$PATH"
+          fi
         '';
       };
     });
