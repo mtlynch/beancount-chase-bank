@@ -6,7 +6,9 @@
 
 beancount-chase-bank provides an Importer for converting CSV exports Chase bank transactions into [Beancount](https://github.com/beancount/beancount) v2 format.
 
-## Installation
+## Development
+
+To create a development environment, run:
 
 ```bash
 uv python pin 3.13.6 && \
