@@ -3,6 +3,12 @@ executors:
   python:
     docker:
       - image: ghcr.io/astral-sh/uv:python3.13-trixie-slim
+commands:
+  install_twine:
+    steps:
+      - run:
+          name: Install Twine
+          command: UV_TOOL_BIN_DIR=/usr/local/bin uv tool install twine==6.0.1
 jobs:
   check_whitespace:
     docker:
@@ -43,6 +49,7 @@ jobs:
     executor: python
     steps:
       - checkout
+      - install_twine
       - run:
           name: Install requirements and run build script
           command: |
@@ -55,8 +62,7 @@ jobs:
             uv pip install --requirement requirements.txt
             uv pip install \
               setuptools[distutils]==75.6.0 \
-              wheel==0.45.1 \
-              twine==6.0.1
+              wheel==0.45.1
 
             # Extract version from git tag (remove 'v' prefix if present)
             if [[ -n "$CIRCLE_TAG" ]]; then
@@ -70,19 +76,18 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - .venv
             - dist
   publish:
     executor: python
     steps:
       - attach_workspace:
           at: .
+      - install_twine
       - run:
           name: publish to PyPI
           # Requires TWINE_USERNAME and TWINE_PASSWORD environment variables.
           command: |
               set -x
-              . .venv/bin/activate
               twine upload dist/*
           environment:
             TWINE_USERNAME: __token__
