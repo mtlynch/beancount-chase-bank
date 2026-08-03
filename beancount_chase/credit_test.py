@@ -44,6 +44,19 @@ def test_identifies_chase_credit_file_first_statement(tmp_path):
                               lastfour='1234').identify(f)
 
 
+def test_identifies_chase_credit_file_new_format(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260803.csv'
+    chase_file.write_text(
+        _unindent("""
+            Transaction Date,Post Date,Description,Category,Type,Amount,Memo
+            07/29/2026,07/31/2026,THE TASTY PANCAKE,Food & Drink,Sale,-24.87,
+            """))
+
+    with chase_file.open() as f:
+        assert CreditImporter(account='Liabilities:Credit-Cards:Chase',
+                              lastfour='1234').identify(f)
+
+
 def test_extracts_spend(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity20210103_20210202_20210214.CSV'
     chase_file.write_text(
@@ -59,6 +72,24 @@ def test_extracts_spend(tmp_path):
     assert _unindent("""
         2021-10-29 * "Google *Cloud_02bb66-C"
           Liabilities:Credit-Cards:Chase  -25.35 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_spend_new_format(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260803.csv'
+    chase_file.write_text(
+        _unindent("""
+            Transaction Date,Post Date,Description,Category,Type,Amount,Memo
+            07/29/2026,07/31/2026,THE TASTY PANCAKE,Food & Drink,Sale,-24.87,
+            """))
+
+    with chase_file.open() as f:
+        directives = CreditImporter(account='Liabilities:Credit-Cards:Chase',
+                                    lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2026-07-29 * "The Tasty Pancake"
+          Liabilities:Credit-Cards:Chase  -24.87 USD
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
