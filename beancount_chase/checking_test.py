@@ -323,6 +323,24 @@ def test_extracts_credit(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_incoming_international_wire(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/04/2026,"BOOK TRANSFER CREDIT B/O: UBS SWITZERLAND AG ZURICH SWITZERLAND 8001 - CH ORG:/CH860014023083590260G EXAMPLECO AG REF: 14.08.2026/OCMT/USD250,/CATPURP/SUPP TRN: 2207826237LS",250.00,WIRE_INCOMING,3904.18,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "Exampleco" "Incoming Wire"
+          Assets:Checking:Chase  250.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_extracts_debit_card_transaction(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
     chase_file.write_text(

@@ -158,6 +158,11 @@ _TRANSACTION_PATTERNS = [
                     r'([^/]+?)(?:/.*?)?\s+REF:'), lambda m, _:
      (m.group(2).strip(), m.group(1))),
 
+    # Incoming international book transfer.
+    (_compile_regex(r'^BOOK TRANSFER CREDIT B/O:.*\s+ORG:/\S+\s+'
+                    r'(.+?)(?:\s+AG)?\s+REF:'), lambda m, _:
+     (m.group(1), 'Incoming Wire')),
+
     # Fee reversal.
     (_compile_regex(r'^(?:FEE REVERSAL$|MONTHLY SERVICE FEE REVERSAL(?:\s|$))'),
      lambda _, desc: (desc, None)),
