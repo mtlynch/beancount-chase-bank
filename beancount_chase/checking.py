@@ -186,6 +186,11 @@ _TRANSACTION_PATTERNS = [
     # Wire transfer.
     (_compile_regex('WIRE_OUTGOING'), lambda _, desc: (desc, None)),
 
+    # Incoming international book transfer.
+    (_compile_regex(r'^BOOK TRANSFER CREDIT B/O:.*\s+ORG:/\S+\s+'
+                    r'(.+?)(?:\s+AG)?\s+REF:'), lambda m, _:
+     (m.group(1), 'Incoming Wire')),
+
     # Foreign exchange wire fee.
     (_compile_regex('ONLINE FX INTERNATIONAL WIRE FEE'), lambda _, desc:
      (desc, None)),
