@@ -178,6 +178,11 @@ _TRANSACTION_PATTERNS = [
     # Real-time payment fee.
     (_compile_regex(r'^RTP/'), lambda _, desc: (desc, None)),
 
+    # Incoming real-time payment with an optional processor after the slash.
+    (_compile_regex(r'^(REAL TIME PAYMENT CREDIT) RECD FROM .*?\s+FROM:\s*'
+                    r'([^/]+?)(?:/.*?)?\s+REF:'), lambda m, _:
+     (m.group(2).strip(), m.group(1))),
+
     # Wire transfer.
     (_compile_regex('WIRE_OUTGOING'), lambda _, desc: (desc, None)),
 
