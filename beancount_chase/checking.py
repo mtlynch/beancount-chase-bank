@@ -190,6 +190,10 @@ _TRANSACTION_PATTERNS = [
     (_compile_regex('ONLINE FX INTERNATIONAL WIRE FEE'), lambda _, desc:
      (desc, None)),
 
+    # International incoming wire fee.
+    (_compile_regex(r'^INTERNATIONAL INCOMING WIRE FEE$'), lambda _, desc:
+     (desc, None)),
+
     # Fee reversal.
     (_compile_regex(r'^FEE REVERSAL$'), lambda _, desc: (desc, None)),
 
