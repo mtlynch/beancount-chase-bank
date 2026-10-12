@@ -216,6 +216,24 @@ def test_extracts_international_wire_transfer(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_international_incoming_wire_fee(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"INTERNATIONAL INCOMING WIRE FEE",-15.00,FEE_TRANSACTION,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "International Incoming Wire Fee" ""
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_doesnt_title_case_if_asked_not_to(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20230919.CSV'
     chase_file.write_text(
