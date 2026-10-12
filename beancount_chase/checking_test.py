@@ -1,7 +1,6 @@
 import io
 import textwrap
 
-import pytest  # NOQA, pylint: disable=unused-import
 from beancount.ingest import extract
 
 from . import CheckingImporter
@@ -160,15 +159,49 @@ def test_extracts_real_time_payment_fee(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
-@pytest.mark.parametrize('processor',
-                         ['/STRIPE PAYMENTS COMPANY', '/OTHER PROCESSOR', ''])
-def test_extracts_real_time_payment_credit(tmp_path, processor):
+def test_extracts_real_time_payment_credit_with_stripe_processor(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            CREDIT,08/24/2026,"REAL TIME PAYMENT CREDIT RECD FROM ABA/CONTR BNK-121000376  FROM: Gumroad, Inc{processor} REF: ST-PPM88GBZ8U2CV2UN2 INFO: TEXT-RmtInf-ST-PPM66GBY8Z2CV7UN9A5U GUMROAD IID: 20260917121000248P1BPBAO99234956473 RECD: 19:19:36 TRN: 1524521160GE",81.32,MISC_CREDIT,2010.84,,
-            """).format(processor=processor))
+            CREDIT,08/24/2026,"REAL TIME PAYMENT CREDIT RECD FROM ABA/CONTR BNK-121000376  FROM: Gumroad, Inc/STRIPE PAYMENTS COMPANY REF: ST-PPM88GBZ8U2CV2UN2 INFO: TEXT-RmtInf-ST-PPM66GBY8Z2CV7UN9A5U GUMROAD IID: 20260917121000248P1BPBAO99234956473 RECD: 19:19:36 TRN: 1524521160GE",81.32,MISC_CREDIT,2010.84,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2026-08-24 * "Gumroad, Inc" "Real Time Payment Credit"
+          Assets:Checking:Chase  81.32 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_real_time_payment_credit_with_other_processor(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,08/24/2026,"REAL TIME PAYMENT CREDIT RECD FROM ABA/CONTR BNK-121000376  FROM: Gumroad, Inc/OTHER PROCESSOR REF: ST-PPM88GBZ8U2CV2UN2 INFO: TEXT-RmtInf-ST-PPM66GBY8Z2CV7UN9A5U GUMROAD IID: 20260917121000248P1BPBAO99234956473 RECD: 19:19:36 TRN: 1524521160GE",81.32,MISC_CREDIT,2010.84,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2026-08-24 * "Gumroad, Inc" "Real Time Payment Credit"
+          Assets:Checking:Chase  81.32 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_real_time_payment_credit_without_processor(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,08/24/2026,"REAL TIME PAYMENT CREDIT RECD FROM ABA/CONTR BNK-121000376  FROM: Gumroad, Inc REF: ST-PPM88GBZ8U2CV2UN2 INFO: TEXT-RmtInf-ST-PPM66GBY8Z2CV7UN9A5U GUMROAD IID: 20260917121000248P1BPBAO99234956473 RECD: 19:19:36 TRN: 1524521160GE",81.32,MISC_CREDIT,2010.84,,
+            """))
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
