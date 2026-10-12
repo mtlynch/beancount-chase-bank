@@ -138,67 +138,29 @@ def _compile_regex(pattern):
     return re.compile(pattern, re.IGNORECASE)
 
 
-# Collection of regex patterns for parsing Chase transactions.
+# Collection of regex patterns for parsing Chase transaction descriptions.
 _TRANSACTION_PATTERNS = [
-    # Debit card transaction.
-    (_compile_regex(r'^DEBIT_CARD$'), lambda _, desc: (desc, None)),
+    # ACH transaction with optional origin metadata.
+    (_compile_regex(r'ORIG CO NAME:(.+?)\s*(?:ORIG ID:.*?)?'
+                    r'CO ENTRY DESCR:(.+?)\s*SEC:'), lambda m, _:
+     (m.group(1), m.group(2))),
 
-    # ACH transaction with company name and description (full format).
-    (_compile_regex(r'ORIG CO NAME:(.+?)\s*ORIG ID:.*DESC DATE:.*'
-                    r'CO ENTRY DESCR:(.+?)\s*SEC:.*TRACE#:.*EED:.*'),
-     lambda m, _: (m.group(1), m.group(2))),
-
-    # ACH transaction with company name and description (simple format).
-    (_compile_regex(r'ORIG CO NAME:(.+?)\s*CO ENTRY DESCR:(.+?)\s*SEC:'),
-     lambda m, _: (m.group(1), m.group(2))),
-
-    # Outbound transfer.
-    (_compile_regex(r'Online Transfer \d+ to (.+?)\s*transaction #'),
+    # Inbound or outbound transfer.
+    (_compile_regex(r'Online Transfer \d+ (?:to|from) (.+?)\s*transaction #'),
      lambda m, desc: (m.group(1), desc)),
 
     # ACH payment.
     (_compile_regex(r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$'),
      lambda m, desc: (m.group(1), desc)),
 
-    # Standard ACH fee.
-    (_compile_regex(r'^STANDARD ACH PMNTS INITIAL FEE$'), lambda _, desc:
-     (desc, None)),
-
-    # Inbound transfer.
-    (_compile_regex(r'Online Transfer \d+ from (.+?)\s*transaction #'),
-     lambda m, desc: (m.group(1), desc)),
-
-    # Monthly service fee.
-    (_compile_regex(r'^MONTHLY SERVICE FEE$'), lambda _, desc: (desc, None)),
-
-    # Monthly service fee reversal.
-    (_compile_regex(r'^Monthly Service Fee Reversal '), lambda _, desc:
-     (desc, None)),
-
-    # Real-time payment fee.
-    (_compile_regex(r'^RTP/'), lambda _, desc: (desc, None)),
-
     # Incoming real-time payment with an optional processor after the slash.
     (_compile_regex(r'^(REAL TIME PAYMENT CREDIT) RECD FROM .*?\s+FROM:\s*'
                     r'([^/]+?)(?:/.*?)?\s+REF:'), lambda m, _:
      (m.group(2).strip(), m.group(1))),
 
-    # Wire transfer.
-    (_compile_regex('WIRE_OUTGOING'), lambda _, desc: (desc, None)),
-
-    # Foreign exchange wire fee.
-    (_compile_regex('ONLINE FX INTERNATIONAL WIRE FEE'), lambda _, desc:
-     (desc, None)),
-
-    # International incoming wire fee.
-    (_compile_regex(r'^INTERNATIONAL INCOMING WIRE FEE$'), lambda _, desc:
-     (desc, None)),
-
     # Fee reversal.
-    (_compile_regex(r'^FEE REVERSAL$'), lambda _, desc: (desc, None)),
-
-    # Deposit.
-    (_compile_regex(r'^DEPOSIT$'), lambda _, desc: (desc, None)),
+    (_compile_regex(r'^(?:FEE REVERSAL$|MONTHLY SERVICE FEE REVERSAL(?:\s|$))'),
+     lambda _, desc: (desc, None)),
 ]
 
 
@@ -213,14 +175,13 @@ def _parse_payee(description, transaction_type):
         Tuple of (payee, description) strings or (None, None) if no transaction
         matches.
     """
-    for pattern, handler in _TRANSACTION_PATTERNS:
-        # Try matching on the description.
-        match = pattern.search(description)
-        if match:
-            return handler(match, description)
+    if transaction_type.upper() in {
+            'FEE_TRANSACTION', 'DEBIT_CARD', 'WIRE_OUTGOING', 'DEPOSIT'
+    }:
+        return description, None
 
-        # If no match on description, try matching the transaction type.
-        match = pattern.search(transaction_type)
+    for pattern, handler in _TRANSACTION_PATTERNS:
+        match = pattern.search(description)
         if match:
             return handler(match, description)
 
