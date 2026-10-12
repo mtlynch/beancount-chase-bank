@@ -106,6 +106,96 @@ def test_extracts_standard_ach_transaction(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_credit(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/03/2021,"ORIG CO NAME:gumroad.com            ORIG ID:1234567890 DESC DATE:       CO ENTRY DESCR:Gumroad   SEC:CCD    TRACE#:987654321987654 EED:112233   IND ID:ST-JAABBCCDDEEF              IND NAME:MICHAEL CUSTOMER TRN: 1122334455TC",63.84,ACH_CREDIT,7687.53,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2021-09-03 * "gumroad.com" "Gumroad"
+          Assets:Checking:Chase  63.84 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_simple_ach_credit(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20250909.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/09/2025,"ORIG CO NAME:STRIPE           CO ENTRY DESCR:TRANSFER   SEC:CCD IND ID:ST-S7U3D4S9F9G3 ORIG ID:1800948492",85.59,ACH_CREDIT, ,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-09-09 * "Stripe" "Transfer"
+          Assets:Checking:Chase  85.59 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_ach_without_optional_metadata(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/04/2026,"ORIG CO NAME:EXAMPLE COMPANY   CO ENTRY DESCR:PAYMENT   SEC:CCD",85.59,ACH_CREDIT,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "EXAMPLE COMPANY" "PAYMENT"
+          Assets:Checking:Chase  85.59 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_ach_with_origin_id(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/04/2026,"ORIG CO NAME:EXAMPLE COMPANY   ORIG ID:1234567890 CO ENTRY DESCR:PAYMENT   SEC:CCD",85.59,ACH_CREDIT,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "EXAMPLE COMPANY" "PAYMENT"
+          Assets:Checking:Chase  85.59 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_ach_with_origin_id_and_description_date(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/04/2026,"ORIG CO NAME:EXAMPLE COMPANY   ORIG ID:1234567890 DESC DATE:260904 CO ENTRY DESCR:PAYMENT   SEC:CCD",85.59,ACH_CREDIT,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "EXAMPLE COMPANY" "PAYMENT"
+          Assets:Checking:Chase  85.59 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_extracts_monthly_account_fee(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20230919.CSV'
     chase_file.write_text(
@@ -120,6 +210,43 @@ def test_extracts_monthly_account_fee(tmp_path):
 
     assert _unindent("""
         2023-08-31 * "Monthly Service Fee" ""
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_preserves_monthly_fee_description_with_lowercase_type(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"Monthly Service Fee",-15.00,fee_transaction,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "Monthly Service Fee" ""
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_doesnt_title_case_if_asked_not_to(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20230919.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,08/31/2023,"MONTHLY SERVICE FEE",-15.00,FEE_TRANSACTION,2118.39,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2023-08-31 * "MONTHLY SERVICE FEE" ""
           Assets:Checking:Chase  -15.00 USD
         """.rstrip()) == _stringify_directives(directives).strip()
 
@@ -142,6 +269,19 @@ def test_extracts_monthly_account_fee_refund(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_rejects_monthly_fee_reversal_without_word_boundary(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"Monthly Service Fee ReversalExtra",-15.00,REFUND_TRANSACTION,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        with pytest.raises(ValueError, match='failed to parse Description='):
+            CheckingImporter(account='Assets:Checking:Chase').extract(f)
+
+
 def test_extracts_monthly_account_fee_refund_2(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
     chase_file.write_text(
@@ -158,6 +298,32 @@ def test_extracts_monthly_account_fee_refund_2(tmp_path):
         2025-04-18 * "Fee Reversal" ""
           Assets:Checking:Chase  15.00 USD
         """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_rejects_fee_reversal_with_extra_description(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"FEE REVERSAL EXTRA",-15.00,REFUND_TRANSACTION,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        with pytest.raises(ValueError, match='failed to parse Description='):
+            CheckingImporter(account='Assets:Checking:Chase').extract(f)
+
+
+def test_rejects_merchant_refund(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"Merchant Refund",-15.00,REFUND_TRANSACTION,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        with pytest.raises(ValueError, match='failed to parse Description='):
+            CheckingImporter(account='Assets:Checking:Chase').extract(f)
 
 
 def test_extracts_real_time_payment_fee(tmp_path):
@@ -232,24 +398,6 @@ def test_extracts_real_time_payment_credit_without_processor(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
-def test_extracts_foreign_exchange_wire_fee(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,01/27/2025,"ONLINE FX INTERNATIONAL WIRE FEE",-5.00,FEE_TRANSACTION,5088.02,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
-
-    assert _unindent("""
-        2025-01-27 * "Online Foreign Exchange International Wire Fee" ""
-          Assets:Checking:Chase  -5.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
 def test_extracts_international_wire_transfer(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
     chase_file.write_text(
@@ -265,193 +413,6 @@ def test_extracts_international_wire_transfer(tmp_path):
     assert _unindent("""
         2025-01-27 * "Online International Wire Transfer a/C: Foreign Cur Bus Acct Bk 1 Columbus Newark De 197132352 Us Org: 00000000252697135 John Q Name Ben:/De98850554080404114242 Globo Chem Ref: Supply Order Business EXPENSES/OCMT/EUR100,00/EXCH/0.9246/CN Tr/61323361/ Trn: 1359400013re 01/27" ""
           Assets:Checking:Chase  -108.15 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_extracts_international_incoming_wire_fee(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"INTERNATIONAL INCOMING WIRE FEE",-15.00,FEE_TRANSACTION,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "International Incoming Wire Fee" ""
-          Assets:Checking:Chase  -15.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_doesnt_title_case_if_asked_not_to(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20230919.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,08/31/2023,"MONTHLY SERVICE FEE",-15.00,FEE_TRANSACTION,2118.39,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2023-08-31 * "MONTHLY SERVICE FEE" ""
-          Assets:Checking:Chase  -15.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_extracts_credit(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            CREDIT,09/03/2021,"ORIG CO NAME:gumroad.com            ORIG ID:1234567890 DESC DATE:       CO ENTRY DESCR:Gumroad   SEC:CCD    TRACE#:987654321987654 EED:112233   IND ID:ST-JAABBCCDDEEF              IND NAME:MICHAEL CUSTOMER TRN: 1122334455TC",63.84,ACH_CREDIT,7687.53,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
-
-    assert _unindent("""
-        2021-09-03 * "gumroad.com" "Gumroad"
-          Assets:Checking:Chase  63.84 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_extracts_incoming_international_wire(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            CREDIT,09/04/2026,"BOOK TRANSFER CREDIT B/O: UBS SWITZERLAND AG ZURICH SWITZERLAND 8001 - CH ORG:/CH860014023083590260G EXAMPLECO AG REF: 14.08.2026/OCMT/USD250,/CATPURP/SUPP TRN: 2207826237LS",250.00,WIRE_INCOMING,3904.18,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "Exampleco" "Incoming Wire"
-          Assets:Checking:Chase  250.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_extracts_debit_card_transaction(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,01/05/2025,"Spotify",-10.00,DEBIT_CARD,1000.00,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
-
-    assert _unindent("""
-        2025-01-05 * "Spotify" ""
-          Assets:Checking:Chase  -10.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_extracts_cash_redemption_deposit(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20251205.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DSLIP,12/05/2025,"Cash Redemption",7.76,DEPOSIT,4224.68,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
-
-    assert _unindent("""
-        2025-12-05 * "Cash Redemption" ""
-          Assets:Checking:Chase  7.76 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_matches_account_when_pattern_splits_across_payee_and_narration(
-        tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,11/06/2021,"ORIG CO NAME:CHASE CREDIT CRD       ORIG ID:1234567890 DESC DATE:211203 CO ENTRY DESCR:AUTOPAYBUSSEC:PPD    TRACE#:987654321987654 EED:112233   IND ID:                             IND NAME:MICHAEL CUSTOMER T TRN: 1122334455TC",-357.51,ACH_DEBIT,2988.62,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234',
-                                      account_patterns=[
-                                          ('Chase Credit CRD.*Autopaybus',
-                                           'Liabilities:Credit-Cards:Chase')
-                                      ]).extract(f)
-
-    assert _unindent("""
-        2021-11-06 * "Chase Credit CRD" "Autopaybus"
-          Assets:Checking:Chase           -357.51 USD
-          Liabilities:Credit-Cards:Chase   357.51 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_extracts_simple_ach_credit(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20250909.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            CREDIT,09/09/2025,"ORIG CO NAME:STRIPE           CO ENTRY DESCR:TRANSFER   SEC:CCD IND ID:ST-S7U3D4S9F9G3 ORIG ID:1800948492",85.59,ACH_CREDIT, ,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      lastfour='1234').extract(f)
-
-    assert _unindent("""
-        2025-09-09 * "Stripe" "Transfer"
-          Assets:Checking:Chase  85.59 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_preserves_debit_card_description_with_lowercase_type(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"Spotify",-15.00,debit_card,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "Spotify" ""
-          Assets:Checking:Chase  -15.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_preserves_deposit_description_with_lowercase_type(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"Cash Redemption",-15.00,deposit,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "Cash Redemption" ""
-          Assets:Checking:Chase  -15.00 USD
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
@@ -473,20 +434,82 @@ def test_preserves_wire_description_with_lowercase_type(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
-def test_preserves_monthly_fee_description_with_lowercase_type(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
+def test_rejects_wire_outgoing_type_with_extra_suffix(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"Monthly Service Fee",-15.00,fee_transaction,2400.17,,
+            DEBIT,09/04/2026,"UNKNOWN TRANSACTION",-15.00,WIRE_OUTGOING_EXTRA,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        with pytest.raises(ValueError, match='failed to parse Description='):
+            CheckingImporter(account='Assets:Checking:Chase').extract(f)
+
+
+def test_rejects_wire_outgoing_type_with_extra_prefix(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"UNKNOWN TRANSACTION",-15.00,NOT_WIRE_OUTGOING,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        with pytest.raises(ValueError, match='failed to parse Description='):
+            CheckingImporter(account='Assets:Checking:Chase').extract(f)
+
+
+def test_extracts_incoming_international_wire(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/04/2026,"BOOK TRANSFER CREDIT B/O: UBS SWITZERLAND AG ZURICH SWITZERLAND 8001 - CH ORG:/CH860014023083590260G EXAMPLECO AG REF: 14.08.2026/OCMT/USD250,/CATPURP/SUPP TRN: 2207826237LS",250.00,WIRE_INCOMING,3904.18,,
             """))
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
+                                      lastfour='1234').extract(f)
 
     assert _unindent("""
-        2026-09-04 * "Monthly Service Fee" ""
+        2026-09-04 * "Exampleco" "Incoming Wire"
+          Assets:Checking:Chase  250.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_foreign_exchange_wire_fee(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,01/27/2025,"ONLINE FX INTERNATIONAL WIRE FEE",-5.00,FEE_TRANSACTION,5088.02,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-01-27 * "Online Foreign Exchange International Wire Fee" ""
+          Assets:Checking:Chase  -5.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_extracts_international_incoming_wire_fee(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"INTERNATIONAL INCOMING WIRE FEE",-15.00,FEE_TRANSACTION,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "International Incoming Wire Fee" ""
           Assets:Checking:Chase  -15.00 USD
         """.rstrip()) == _stringify_directives(directives).strip()
 
@@ -497,6 +520,24 @@ def test_preserves_domestic_incoming_wire_fee_description(tmp_path):
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
             DEBIT,09/04/2026,"DOMESTIC INCOMING WIRE FEE",-15.00,FEE_TRANSACTION,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "DOMESTIC INCOMING WIRE FEE" ""
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_preserves_domestic_incoming_wire_fee_with_lowercase_type(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"DOMESTIC INCOMING WIRE FEE",-15.00,fee_transaction,2400.17,,
             """))
 
     with chase_file.open() as f:
@@ -527,12 +568,48 @@ def test_preserves_unrecognized_fee_description(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_preserves_unrecognized_fee_with_lowercase_type(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"UNRECOGNIZED FEE",-15.00,fee_transaction,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "UNRECOGNIZED FEE" ""
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_preserves_new_bank_charge_description(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
             DEBIT,09/04/2026,"NEW BANK CHARGE",-15.00,FEE_TRANSACTION,2400.17,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "NEW BANK CHARGE" ""
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_preserves_new_bank_charge_with_lowercase_type(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"NEW BANK CHARGE",-15.00,fee_transaction,2400.17,,
             """))
 
     with chase_file.open() as f:
@@ -563,60 +640,6 @@ def test_preserves_ach_like_fee_description(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
-def test_preserves_domestic_incoming_wire_fee_with_lowercase_type(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"DOMESTIC INCOMING WIRE FEE",-15.00,fee_transaction,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "DOMESTIC INCOMING WIRE FEE" ""
-          Assets:Checking:Chase  -15.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_preserves_unrecognized_fee_with_lowercase_type(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"UNRECOGNIZED FEE",-15.00,fee_transaction,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "UNRECOGNIZED FEE" ""
-          Assets:Checking:Chase  -15.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_preserves_new_bank_charge_with_lowercase_type(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"NEW BANK CHARGE",-15.00,fee_transaction,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "NEW BANK CHARGE" ""
-          Assets:Checking:Chase  -15.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
 def test_preserves_ach_like_fee_with_lowercase_type(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
     chase_file.write_text(
@@ -635,73 +658,6 @@ def test_preserves_ach_like_fee_with_lowercase_type(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
-def test_extracts_ach_without_optional_metadata(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            CREDIT,09/04/2026,"ORIG CO NAME:EXAMPLE COMPANY   CO ENTRY DESCR:PAYMENT   SEC:CCD",85.59,ACH_CREDIT,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "EXAMPLE COMPANY" "PAYMENT"
-          Assets:Checking:Chase  85.59 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_extracts_ach_with_origin_id(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            CREDIT,09/04/2026,"ORIG CO NAME:EXAMPLE COMPANY   ORIG ID:1234567890 CO ENTRY DESCR:PAYMENT   SEC:CCD",85.59,ACH_CREDIT,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "EXAMPLE COMPANY" "PAYMENT"
-          Assets:Checking:Chase  85.59 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_extracts_ach_with_origin_id_and_description_date(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            CREDIT,09/04/2026,"ORIG CO NAME:EXAMPLE COMPANY   ORIG ID:1234567890 DESC DATE:260904 CO ENTRY DESCR:PAYMENT   SEC:CCD",85.59,ACH_CREDIT,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        directives = CheckingImporter(account='Assets:Checking:Chase',
-                                      title_case=False).extract(f)
-
-    assert _unindent("""
-        2026-09-04 * "EXAMPLE COMPANY" "PAYMENT"
-          Assets:Checking:Chase  85.59 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
-
-
-def test_rejects_unknown_transaction_type(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
-    chase_file.write_text(
-        _unindent("""
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"UNKNOWN TRANSACTION",-15.00,UNKNOWN_TYPE,2400.17,,
-            """))
-
-    with chase_file.open() as f:
-        with pytest.raises(ValueError, match='failed to parse Description='):
-            CheckingImporter(account='Assets:Checking:Chase').extract(f)
-
-
 def test_rejects_unrecognized_fee_with_misc_debit_type(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
     chase_file.write_text(
@@ -715,64 +671,108 @@ def test_rejects_unrecognized_fee_with_misc_debit_type(tmp_path):
             CheckingImporter(account='Assets:Checking:Chase').extract(f)
 
 
-def test_rejects_merchant_refund(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+def test_extracts_debit_card_transaction(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"Merchant Refund",-15.00,REFUND_TRANSACTION,2400.17,,
+            DEBIT,01/05/2025,"Spotify",-10.00,DEBIT_CARD,1000.00,,
             """))
 
     with chase_file.open() as f:
-        with pytest.raises(ValueError, match='failed to parse Description='):
-            CheckingImporter(account='Assets:Checking:Chase').extract(f)
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-01-05 * "Spotify" ""
+          Assets:Checking:Chase  -10.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
 
 
-def test_rejects_fee_reversal_with_extra_description(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+def test_preserves_debit_card_description_with_lowercase_type(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"FEE REVERSAL EXTRA",-15.00,REFUND_TRANSACTION,2400.17,,
+            DEBIT,09/04/2026,"Spotify",-15.00,debit_card,2400.17,,
             """))
 
     with chase_file.open() as f:
-        with pytest.raises(ValueError, match='failed to parse Description='):
-            CheckingImporter(account='Assets:Checking:Chase').extract(f)
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "Spotify" ""
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
 
 
-def test_rejects_monthly_fee_reversal_without_word_boundary(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+def test_extracts_cash_redemption_deposit(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20251205.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"Monthly Service Fee ReversalExtra",-15.00,REFUND_TRANSACTION,2400.17,,
+            DSLIP,12/05/2025,"Cash Redemption",7.76,DEPOSIT,4224.68,,
             """))
 
     with chase_file.open() as f:
-        with pytest.raises(ValueError, match='failed to parse Description='):
-            CheckingImporter(account='Assets:Checking:Chase').extract(f)
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-12-05 * "Cash Redemption" ""
+          Assets:Checking:Chase  7.76 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
 
 
-def test_rejects_wire_outgoing_type_with_extra_suffix(tmp_path):
-    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+def test_preserves_deposit_description_with_lowercase_type(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20260904.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"UNKNOWN TRANSACTION",-15.00,WIRE_OUTGOING_EXTRA,2400.17,,
+            DEBIT,09/04/2026,"Cash Redemption",-15.00,deposit,2400.17,,
             """))
 
     with chase_file.open() as f:
-        with pytest.raises(ValueError, match='failed to parse Description='):
-            CheckingImporter(account='Assets:Checking:Chase').extract(f)
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      title_case=False).extract(f)
+
+    assert _unindent("""
+        2026-09-04 * "Cash Redemption" ""
+          Assets:Checking:Chase  -15.00 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
 
 
-def test_rejects_wire_outgoing_type_with_extra_prefix(tmp_path):
+def test_matches_account_when_pattern_splits_across_payee_and_narration(
+        tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,11/06/2021,"ORIG CO NAME:CHASE CREDIT CRD       ORIG ID:1234567890 DESC DATE:211203 CO ENTRY DESCR:AUTOPAYBUSSEC:PPD    TRACE#:987654321987654 EED:112233   IND ID:                             IND NAME:MICHAEL CUSTOMER T TRN: 1122334455TC",-357.51,ACH_DEBIT,2988.62,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234',
+                                      account_patterns=[
+                                          ('Chase Credit CRD.*Autopaybus',
+                                           'Liabilities:Credit-Cards:Chase')
+                                      ]).extract(f)
+
+    assert _unindent("""
+        2021-11-06 * "Chase Credit CRD" "Autopaybus"
+          Assets:Checking:Chase           -357.51 USD
+          Liabilities:Credit-Cards:Chase   357.51 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
+def test_rejects_unknown_transaction_type(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/04/2026,"UNKNOWN TRANSACTION",-15.00,NOT_WIRE_OUTGOING,2400.17,,
+            DEBIT,09/04/2026,"UNKNOWN TRANSACTION",-15.00,UNKNOWN_TYPE,2400.17,,
             """))
 
     with chase_file.open() as f:
