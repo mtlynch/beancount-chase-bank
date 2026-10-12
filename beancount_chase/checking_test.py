@@ -369,12 +369,38 @@ def test_preserves_description_for_transaction_type(description,
     assert _parse_payee(description, transaction_type) == (description, None)
 
 
+@pytest.mark.parametrize('description', [
+    'DOMESTIC INCOMING WIRE FEE',
+    'UNRECOGNIZED FEE',
+    'NEW BANK CHARGE',
+    'ORIG CO NAME:CHASE CO ENTRY DESCR:FEE SEC:CCD',
+])
+@pytest.mark.parametrize('transaction_type',
+                         ['FEE_TRANSACTION', 'fee_transaction'])
+def test_preserves_any_fee_description(description, transaction_type):
+    assert _parse_payee(description, transaction_type) == (description, None)
+
+
+@pytest.mark.parametrize('metadata', [
+    '',
+    'ORIG ID:1234567890 ',
+    'ORIG ID:1234567890 DESC DATE:260904 ',
+])
+def test_parses_ach_with_optional_metadata(metadata):
+    description = (f'ORIG CO NAME:EXAMPLE COMPANY   {metadata}'
+                   'CO ENTRY DESCR:PAYMENT   SEC:CCD')
+    assert _parse_payee(description,
+                        'ACH_CREDIT') == ('EXAMPLE COMPANY', 'PAYMENT')
+
+
 @pytest.mark.parametrize('description,transaction_type', [
     ('UNKNOWN TRANSACTION', 'UNKNOWN_TYPE'),
     ('UNRECOGNIZED FEE', 'MISC_DEBIT'),
     ('Merchant Refund', 'REFUND_TRANSACTION'),
     ('FEE REVERSAL EXTRA', 'REFUND_TRANSACTION'),
     ('Monthly Service Fee ReversalExtra', 'REFUND_TRANSACTION'),
+    ('UNKNOWN TRANSACTION', 'WIRE_OUTGOING_EXTRA'),
+    ('UNKNOWN TRANSACTION', 'NOT_WIRE_OUTGOING'),
 ])
 def test_rejects_unsupported_transaction(tmp_path, description,
                                          transaction_type):
