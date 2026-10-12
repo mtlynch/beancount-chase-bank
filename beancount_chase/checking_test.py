@@ -1,7 +1,7 @@
 import io
 import textwrap
 
-import pytest  # NOQA, pylint: disable=unused-import
+import pytest
 from beancount.ingest import extract
 
 from . import CheckingImporter
