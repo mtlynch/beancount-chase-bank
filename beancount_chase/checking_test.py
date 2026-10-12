@@ -5,6 +5,7 @@ import pytest  # NOQA, pylint: disable=unused-import
 from beancount.ingest import extract
 
 from . import CheckingImporter
+from .checking import _parse_payee
 
 
 def _unindent(indented):
@@ -30,22 +31,30 @@ def test_identifies_chase_file(tmp_path):
                                 lastfour='1234').identify(f)
 
 
-def test_extracts_outbound_transfer(tmp_path):
+@pytest.mark.parametrize('direction,details,transaction_amount',
+                         [('to', 'DEBIT', '-2500.00'),
+                          ('from', 'CREDIT', '2500.00')])
+def test_extracts_transfer(tmp_path, direction, details, transaction_amount):
     chase_file = tmp_path / 'Chase1234_Activity_20211019.CSV'
     chase_file.write_text(
         _unindent("""
             Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,09/13/2021,"Online Transfer 12345678901 to Schwab Personal Checking ########9876 transaction #: 12345678901 09/13",-2500.00,ACCT_XFER,4325.75,,
-            """))
+            {details},09/13/2021,"Online Transfer 12345678901 {direction} Schwab Personal Checking ########9876 transaction #: 12345678901 09/13",{transaction_amount},ACCT_XFER,4325.75,,
+            """).format(details=details,
+                        direction=direction,
+                        transaction_amount=transaction_amount))
 
     with chase_file.open() as f:
         directives = CheckingImporter(account='Assets:Checking:Chase',
                                       lastfour='1234').extract(f)
 
     assert _unindent("""
-        2021-09-13 * "Schwab Personal Checking ########9876" "Online Transfer 12345678901 to Schwab Personal Checking ########9876 Transaction #: 12345678901 09/13"
-          Assets:Checking:Chase  -2500.00 USD
-        """.rstrip()) == _stringify_directives(directives).strip()
+        2021-09-13 * "Schwab Personal Checking ########9876" "Online Transfer 12345678901 {direction} Schwab Personal Checking ########9876 Transaction #: 12345678901 09/13"
+          Assets:Checking:Chase  {transaction_amount} USD
+        """.rstrip()).format(
+        direction='From' if direction == 'from' else direction,
+        transaction_amount=transaction_amount) == _stringify_directives(
+            directives).strip()
 
 
 def test_extracts_same_day_ach_transaction(tmp_path):
@@ -347,3 +356,36 @@ def test_extracts_simple_ach_credit(tmp_path):
         2025-09-09 * "Stripe" "Transfer"
           Assets:Checking:Chase  85.59 USD
         """.rstrip()) == _stringify_directives(directives).strip()
+
+
+@pytest.mark.parametrize('description,transaction_type', [
+    ('Spotify', 'debit_card'),
+    ('Cash Redemption', 'deposit'),
+    ('Online International Wire Transfer', 'wire_outgoing'),
+    ('Monthly Service Fee', 'fee_transaction'),
+])
+def test_preserves_description_for_transaction_type(description,
+                                                    transaction_type):
+    assert _parse_payee(description, transaction_type) == (description, None)
+
+
+@pytest.mark.parametrize('description,transaction_type', [
+    ('UNKNOWN TRANSACTION', 'UNKNOWN_TYPE'),
+    ('UNRECOGNIZED FEE', 'MISC_DEBIT'),
+    ('Merchant Refund', 'REFUND_TRANSACTION'),
+    ('FEE REVERSAL EXTRA', 'REFUND_TRANSACTION'),
+    ('Monthly Service Fee ReversalExtra', 'REFUND_TRANSACTION'),
+])
+def test_rejects_unsupported_transaction(tmp_path, description,
+                                         transaction_type):
+    chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            DEBIT,09/04/2026,"{description}",-15.00,{transaction_type},2400.17,,
+            """).format(description=description,
+                        transaction_type=transaction_type))
+
+    with chase_file.open() as f:
+        with pytest.raises(ValueError, match='failed to parse Description='):
+            CheckingImporter(account='Assets:Checking:Chase').extract(f)
