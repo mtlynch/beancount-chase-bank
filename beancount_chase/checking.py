@@ -153,9 +153,10 @@ _TRANSACTION_PATTERNS = [
     (_compile_regex(r'^[a-z-]+ ACH Payment \d+ to ([a-z]+) \(_#+\d+\)$'),
      lambda m, desc: (m.group(1), desc)),
 
-    # Incoming real-time payment with an optional processor after the slash.
-    (_compile_regex(r'^(REAL TIME PAYMENT CREDIT) RECD FROM .*?\s+FROM:\s*'
-                    r'([^/]+?)(?:/.*?)?\s+REF:'), lambda m, _:
+    # Incoming real-time payment or transfer with an optional processor.
+    (_compile_regex(
+        r'^(REAL TIME (?:PAYMENT CREDIT|TRANSFER)) RECD FROM .*?\s+FROM:\s*'
+        r'([^/]+?)(?:/.*?)?\s+REF:'), lambda m, _:
      (m.group(2).strip(), m.group(1))),
 
     # Incoming international book transfer.

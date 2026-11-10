@@ -398,6 +398,24 @@ def test_extracts_real_time_payment_credit_without_processor(tmp_path):
         """.rstrip()) == _stringify_directives(directives).strip()
 
 
+def test_extracts_real_time_transfer_via_wise(tmp_path):
+    chase_file = tmp_path / 'Chase1234_Activity_20250918.CSV'
+    chase_file.write_text(
+        _unindent("""
+            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
+            CREDIT,09/18/2025,"REAL TIME TRANSFER RECD FROM ABA/CONTR BNK-123000456  FROM: exampleco/exampleco Via WISE REF: 3281325279-EXAMPLECO INFO: TEXT-RmtInf-EXAMPLECO IID: 20250918123000456P7BRJPC06620003484 RECD: 09:32:27 TRN: 4164863303GB BREF: 2e38d0c4-af51-45a1-ba77-f1b232ae6ac",246.53,MISC_CREDIT,5723.64,,
+            """))
+
+    with chase_file.open() as f:
+        directives = CheckingImporter(account='Assets:Checking:Chase',
+                                      lastfour='1234').extract(f)
+
+    assert _unindent("""
+        2025-09-18 * "Exampleco" "Real Time Transfer"
+          Assets:Checking:Chase  246.53 USD
+        """.rstrip()) == _stringify_directives(directives).strip()
+
+
 def test_extracts_international_wire_transfer(tmp_path):
     chase_file = tmp_path / 'Chase1234_Activity_20240309.CSV'
     chase_file.write_text(
